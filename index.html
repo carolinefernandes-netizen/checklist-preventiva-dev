@@ -1428,6 +1428,7 @@ firebase.initializeApp({
   appId: "1:488059283386:web:e27e1a28dc8c11fd9a5f83"
 });
 const db = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true }).catch(e => console.warn('Persistência offline indisponível:', e.code));
 let unsubSnapshot = null;
 let saveTimer = null;
 let fbReady = false;
@@ -1482,9 +1483,16 @@ function init() {
   document.getElementById('obs-geral').addEventListener('input', scheduleSave);
 
   setSyncStatus('Conectando...');
-  firebase.auth().signInAnonymously()
-    .then(() => { fbReady = true; loadUnit(currentUnitKey); })
-    .catch(e => { console.error('Auth error:', e); setSyncStatus('Erro de conexão'); });
+  // onAuthStateChanged reaproveita a sessão anônima já persistida localmente,
+  // então funciona mesmo sem rede depois do primeiro login. Só faz login novo
+  // se realmente não houver sessão salva.
+  firebase.auth().onAuthStateChanged(user => {
+    if (user) { fbReady = true; loadUnit(currentUnitKey); }
+  });
+  if (!firebase.auth().currentUser) {
+    firebase.auth().signInAnonymously()
+      .catch(e => { console.error('Auth error:', e); setSyncStatus('Erro de conexão'); });
+  }
 }
 
 function onUnitChange() {
