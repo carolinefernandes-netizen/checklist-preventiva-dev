@@ -1436,7 +1436,16 @@ const UNITS = {
   shopee_simoes_filho: { cliente: 'Shopee', unidade: 'Simões Filho BA01', logo: 'shopee', docas: buildSimoesFilho() },
   shopee_hidrolandia:  { cliente: 'Shopee', unidade: 'Hidrolândia FBS GO1', logo: 'shopee', docas: buildHidrolandia() },
   alcon_barueri:       { cliente: 'Alcon',  unidade: 'Barueri', logo: 'alcon', docas: buildAlconBarueri() },
+  teste_belcito:       { cliente: 'Teste',  unidade: 'Unidade de Teste', logo: 'shopee', docas: [
+    { num: '1', modelo: 'Porta Manual/Niveladora Eletro Hid.', niv: true },
+    { num: '2', modelo: 'Porta Manual/Niveladora Eletro Hid.', niv: true },
+    { num: '3', modelo: 'Só Porta', niv: false },
+  ] },
 };
+
+// Unidade de teste: só aparece no seletor com ?teste=1 e nunca entra no gestor.
+const TESTE_KEY = 'teste_belcito';
+const MODO_TESTE = new URLSearchParams(location.search).get('teste') === '1';
 
 const STATUS_INFO = {
   ok:      { label: 'Preventiva Ok', cls: 'active-ok',       pill: 'pill-ok',      desc: 'Equipamento revisado e funcionando normalmente.' },
@@ -1498,7 +1507,7 @@ function buildFreshState(key, carryOver = []) {
 // ── INIT ─────────────────────────────────────────────────────────────────────
 function init() {
   const sel = document.getElementById('unit-select');
-  Object.keys(UNITS).forEach(key => {
+  Object.keys(UNITS).filter(k => MODO_TESTE || k !== TESTE_KEY).forEach(key => {
     const u = UNITS[key];
     const opt = document.createElement('option');
     opt.value = key;
@@ -2149,7 +2158,7 @@ async function gestorCarregar() {
   const mes = document.getElementById('gestor-mes').value;
   if (!mes) { showToast('Selecione um mês'); return; }
   setSyncStatus('Carregando...');
-  const keys = Object.keys(UNITS);
+  const keys = Object.keys(UNITS).filter(k => k !== TESTE_KEY);
   const snaps = await Promise.all(keys.map(k => db.collection('checklists').doc(k + '_' + mes).get()));
   gestorDados = {}; gestorExiste = {};
   snaps.forEach((snap, i) => {
