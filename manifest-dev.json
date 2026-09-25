@@ -1,0 +1,23 @@
+{
+  "name": "[DEV] Checklist Preventiva",
+  "short_name": "DEV Checklist",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1a1a18",
+  "theme_color": "#FFD60A",
+  "icons": [
+    {
+      "src": "icon-dev.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-dev.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

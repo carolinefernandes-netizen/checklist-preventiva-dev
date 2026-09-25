@@ -10,6 +10,16 @@
 <meta name="apple-mobile-web-app-title" content="CheckList">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="icon.png">
+<script>
+// Ambiente decidido antes do carregamento: dev (localhost ou site -dev) | prod.
+// Em dev troca manifest, ícone e cor do tema; prod fica com os links estáticos acima.
+const ENV = (['localhost', '127.0.0.1'].includes(location.hostname) || location.pathname.includes('checklist-preventiva-dev')) ? 'dev' : 'prod';
+if (ENV === 'dev') {
+  document.querySelector('link[rel="manifest"]').href = 'manifest-dev.json';
+  document.querySelector('link[rel="apple-touch-icon"]').href = 'icon-dev.png';
+  document.querySelector('meta[name="theme-color"]').content = '#FFD60A';
+}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -632,8 +642,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ── AMBIENTE: dev (localhost ou site -dev) | prod ──────────────────────────
-const ENV = (['localhost', '127.0.0.1'].includes(location.hostname) || location.pathname.includes('checklist-preventiva-dev')) ? 'dev' : 'prod';
+// ── AMBIENTE (ENV é definido no <head>) ─────────────────────────────────────
 if (ENV === 'dev') {
   document.title = '[DEV] ' + document.title;
   const faixa = document.createElement('div');
