@@ -425,6 +425,26 @@ if (ENV === 'dev') {
   .toast.show { opacity: 1; }
 
   /* Gestor */
+  .user-bar { display:flex; justify-content:center; align-items:center; gap:8px; margin:4px 0 0; font-size:11px; color:var(--text-muted); }
+  .user-bar button { background:none; border:none; color:var(--text-muted); font-size:11px; text-decoration:underline; cursor:pointer; padding:0; }
+  #auth-screen { position:fixed; inset:0; z-index:200; background:var(--bg, #f4f4f2); display:flex; align-items:center; justify-content:center; padding:16px; overflow-y:auto; }
+  #auth-screen.oculta { display:none; }
+  .auth-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:28px 22px; width:100%; max-width:360px; text-align:center; font-family:var(--font); }
+  .auth-logo { height:44px; background:#1a1a18; border-radius:8px; padding:8px 12px; margin-bottom:16px; }
+  .auth-card h2 { font-size:17px; margin-bottom:8px; }
+  .auth-card p { font-size:13px; color:var(--text-muted); margin:6px 0; line-height:1.4; }
+  #auth-email { font-weight:700; color:var(--text); word-break:break-all; }
+  #auth-erro { color:#CC0000; min-height:16px; }
+  .auth-btn { display:block; width:100%; margin-top:14px; padding:12px; border-radius:8px; border:none; background:#CC0000; color:#fff; font-size:14px; font-weight:700; font-family:var(--font); cursor:pointer; }
+  .auth-btn-sec { background:none; color:var(--text-muted); border:1px solid var(--border); font-weight:600; }
+  .usr-lista { margin-bottom:12px; }
+  .usr-row { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #eee; font-size:12px; }
+  .usr-row .usr-info { min-width:0; }
+  .usr-row .usr-nome { font-weight:600; color:#1a1a18; }
+  .usr-row .usr-mail { color:#777; word-break:break-all; }
+  .usr-row.inativo .usr-info { opacity:.5; }
+  .usr-row button { border:1px solid #ccc; background:#f4f4f2; border-radius:6px; padding:5px 10px; font-size:11px; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .usr-form input, .usr-form select { background:#f4f4f2; border:1px solid #ccc; color:#1a1a18; border-radius:6px; padding:8px 10px; font-size:13px; flex:1; min-width:120px; }
   .gestor-link { display:block; text-align:center; margin:4px 0 12px; background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; text-decoration:underline; }
   #gestor-panel { position:fixed; inset:0; background:#f0f0ee; z-index:200; display:none; flex-direction:column; overflow-y:auto; font-family:var(--font); }
   .gestor-header { background:#1a1a18; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:10; box-shadow:0 2px 8px rgba(0,0,0,.35); }
@@ -483,7 +503,8 @@ if (ENV === 'dev') {
 
 <div class="container">
 
-  <button class="gestor-link" onclick="openGestorLogin()">🔒 Área do Gestor</button>
+  <div class="user-bar"><span id="user-email"></span><button onclick="sair()">Sair</button></div>
+  <button class="gestor-link" id="btn-gestor" style="display:none;" onclick="abrirGestor()">🔒 Área do Gestor</button>
 
   <div class="unit-card">
     <label>Unidade</label>
@@ -541,22 +562,17 @@ if (ENV === 'dev') {
 
 </div>
 
-<!-- GESTOR LOGIN MODAL -->
-<div class="modal-overlay" id="gestor-login-modal" style="display:none;">
-  <div class="modal">
-    <h3>Área do Gestor</h3>
-    <div class="field" style="margin-top:12px;">
-      <label>Senha</label>
-      <div style="position:relative;">
-        <input type="password" id="gestor-senha" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')gestorLogin()" style="width:100%;padding-right:40px;" />
-        <button type="button" onclick="const i=document.getElementById('gestor-senha');i.type=i.type==='password'?'text':'password'" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted);">👁</button>
-      </div>
-    </div>
-    <p id="gestor-erro" style="color:#CC0000;font-size:12px;margin-top:6px;min-height:16px;"></p>
-    <div style="display:flex;gap:8px;margin-top:12px;">
-      <button class="btn" onclick="closeGestorLogin()">Cancelar</button>
-      <button class="btn btn-primary" onclick="gestorLogin()">Entrar</button>
-    </div>
+<!-- TELA DE LOGIN / ACESSO (cobre o app até o usuário estar autorizado) -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <img class="auth-logo" src="data:image/png;base64,__BELCITO_B64__" alt="Belcito" />
+    <h2 id="auth-titulo">Checklist Preventiva</h2>
+    <p id="auth-texto"></p>
+    <p id="auth-email"></p>
+    <button id="auth-btn-google" class="auth-btn" onclick="entrarGoogle()">Entrar com Google</button>
+    <button id="auth-btn-tentar" class="auth-btn" onclick="verificarAcesso()">Tentar de novo</button>
+    <button id="auth-btn-sair" class="auth-btn auth-btn-sec" onclick="sair()">Sair</button>
+    <p id="auth-erro"></p>
   </div>
 </div>
 
@@ -570,6 +586,17 @@ if (ENV === 'dev') {
     <button class="gestor-sair" onclick="fecharGestor()">✕ Sair</button>
   </div>
   <div class="gestor-body">
+
+    <div class="gestor-card">
+      <h3>Usuários</h3>
+      <div id="usuarios-lista" class="usr-lista"></div>
+      <div class="gestor-controls usr-form">
+        <input type="email" id="usr-email" placeholder="e-mail Google" autocomplete="off" />
+        <input type="text" id="usr-nome" placeholder="Nome" autocomplete="off" />
+        <select id="usr-papel"><option value="tecnico">Técnico</option><option value="gestor">Gestor</option></select>
+        <button class="btn-carregar" onclick="usuarioAdicionar()">Adicionar</button>
+      </div>
+    </div>
 
     <div class="gestor-card">
       <h3>Período</h3>
@@ -1562,17 +1589,7 @@ function init() {
   });
   document.getElementById('obs-geral').addEventListener('input', scheduleSave);
 
-  setSyncStatus('Conectando...');
-  // onAuthStateChanged reaproveita a sessão anônima já persistida localmente,
-  // então funciona mesmo sem rede depois do primeiro login. Só faz login novo
-  // se realmente não houver sessão salva.
-  firebase.auth().onAuthStateChanged(user => {
-    if (user) { fbReady = true; loadUnit(currentUnitKey); }
-  });
-  if (!firebase.auth().currentUser) {
-    firebase.auth().signInAnonymously()
-      .catch(e => { console.error('Auth error:', e); setSyncStatus('Erro de conexão'); });
-  }
+  iniciarAuth();
 }
 
 function onUnitChange() {
@@ -1605,7 +1622,11 @@ function loadUnit(key) {
     return prevRef.get().then(prevSnap => {
       nextId = 1;
       const docas = buildFreshState(key, prevSnap.exists ? prevSnap.data().docas : []);
-      return docRef.set({ unitKey: key, mes, dataGlobal: '', respGlobal: '', docas })
+      return docRef.set({
+        unitKey: key, mes, dataGlobal: '', respGlobal: '', docas,
+        criadoPor: usuario.email, atualizadoPor: usuario.email,
+        criadoEm: firebase.firestore.FieldValue.serverTimestamp(), atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+      })
         .then(() => herdarFotos(prevRef, docRef, docas))
         .then(() => startSnapshot(docRef));
     });
@@ -1618,7 +1639,7 @@ function herdarFotos(prevRef, docRef, docas) {
   return prevRef.collection('fotos').get()
     .then(s => Promise.all(s.docs
       .filter(x => herdada(x.data().doca, x.data().campo))
-      .map(x => docRef.collection('fotos').doc(x.id).set(x.data()))))
+      .map(x => docRef.collection('fotos').doc(x.id).set({ ...x.data(), autorUid: usuario.uid, herdadaPor: usuario.email }))))
     .catch(e => console.warn('Herança de fotos falhou:', e));
 }
 
@@ -1652,19 +1673,130 @@ function scheduleSave() {
 }
 
 function saveToFirestore() {
-  if (!fbReady || !state.length) return;
+  if (!fbReady || !usuario || !state.length) return Promise.resolve();
   justSaved = true;
   const mes = monthKey();
-  db.collection('checklists').doc(currentUnitKey + '_' + mes).update({
+  return db.collection('checklists').doc(currentUnitKey + '_' + mes).update({
     dataGlobal: document.getElementById('data-global').value,
     respGlobal: document.getElementById('resp-global').value,
     obsGeral: document.getElementById('obs-geral').value,
     docas: state,
+    atualizadoPor: usuario.email,
+    atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
   }).then(() => setSyncStatus('✓ Salvo'))
     .catch(e => { console.error('save error:', e); setSyncStatus('Erro ao salvar'); });
 }
 
 function setSyncStatus(msg) { document.getElementById('sync-status').textContent = msg; }
+
+// ── AUTENTICAÇÃO (Google) E AUTORIZAÇÃO (coleção usuarios) ────────────────────
+const auth = firebase.auth();
+let usuario = null; // { email, uid, nome, papel } — só existe depois de autorizado
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ehGestor = () => !!usuario && usuario.papel === 'gestor';
+
+function mostrarTela(qual, dados = {}) {
+  const g = id => document.getElementById(id);
+  if (qual === 'app') { g('auth-screen').classList.add('oculta'); return; }
+  g('auth-screen').classList.remove('oculta');
+  // [título, texto, botão Google, botão Tentar de novo, botão Sair]
+  const cfg = {
+    verificando: ['Verificando acesso...', '', false, false, false],
+    login:       ['Checklist Preventiva', 'Entre com sua conta Google para continuar.', true, false, false],
+    pendente:    ['Acesso pendente', 'Peça ao gestor para liberar seu acesso.', false, true, true],
+    erro:        ['Não foi possível verificar o acesso', 'Verifique sua conexão e tente de novo.', false, true, true],
+  }[qual];
+  g('auth-titulo').textContent = cfg[0];
+  g('auth-texto').textContent = cfg[1];
+  g('auth-email').textContent = dados.email || '';
+  g('auth-btn-google').style.display = cfg[2] ? 'block' : 'none';
+  g('auth-btn-tentar').style.display = cfg[3] ? 'block' : 'none';
+  g('auth-btn-sair').style.display = cfg[4] ? 'block' : 'none';
+  g('auth-erro').textContent = dados.erro || '';
+}
+
+function msgErroLogin(e) {
+  return ({
+    'auth/unauthorized-domain': 'Domínio não autorizado no Firebase (Authentication > Settings > Authorized domains).',
+    'auth/operation-not-allowed': 'Login com Google não está ativado neste projeto do Firebase.',
+    'auth/network-request-failed': 'Sem conexão. Tente de novo.',
+    'auth/popup-blocked': 'O navegador bloqueou a janela de login.',
+  })[e.code] || ('Erro ao entrar: ' + (e.code || e.message));
+}
+
+function iniciarAuth() {
+  setSyncStatus('Conectando...');
+  mostrarTela('verificando');
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {}); // sessão sobrevive offline
+  auth.getRedirectResult().catch(e => mostrarTela('login', { erro: msgErroLogin(e) }));
+  auth.onAuthStateChanged(user => { user ? verificarAcesso() : (encerrarSessao(), mostrarTela('login'), setSyncStatus('')); });
+}
+
+// redirect no celular/PWA instalado (popup não é confiável); popup no desktop
+const usarRedirect = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+async function entrarGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  document.getElementById('auth-erro').textContent = '';
+  try {
+    if (usarRedirect()) await auth.signInWithRedirect(provider);
+    else await auth.signInWithPopup(provider);
+  } catch (e) {
+    if (e.code === 'auth/popup-blocked') {
+      try { await auth.signInWithRedirect(provider); return; } catch (e2) { e = e2; }
+    }
+    if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request')
+      document.getElementById('auth-erro').textContent = msgErroLogin(e);
+  }
+}
+
+async function verificarAcesso() {
+  const user = auth.currentUser;
+  if (!user) { mostrarTela('login'); return; }
+  if (!user.email) { auth.signOut(); return; } // sessão anônima antiga: exige login Google
+  if (usuario && usuario.uid === user.uid && fbReady) return;
+  const email = (user.email || '').toLowerCase();
+  mostrarTela('verificando', { email });
+  const ref = db.collection('usuarios').doc(email);
+  let snap;
+  try { snap = await ref.get(); }
+  catch (e) {
+    try { snap = await ref.get({ source: 'cache' }); } // offline depois do 1º login
+    catch (e2) { console.error('verificarAcesso:', e); mostrarTela('erro', { email }); return; }
+  }
+  const dados = snap.exists ? snap.data() : null;
+  if (!user.emailVerified || !dados || dados.ativo !== true) {
+    encerrarSessao();
+    mostrarTela('pendente', { email });
+    setSyncStatus('');
+    return;
+  }
+  usuario = { email, uid: user.uid, nome: dados.nome || user.displayName || email, papel: dados.papel === 'gestor' ? 'gestor' : 'tecnico' };
+  document.getElementById('user-email').textContent = email;
+  document.getElementById('btn-gestor').style.display = ehGestor() ? 'block' : 'none';
+  fbReady = true;
+  mostrarTela('app');
+  loadUnit(currentUnitKey);
+}
+
+// Solta tudo da sessão anterior (listeners, estado em memória, painel do gestor).
+function encerrarSessao() {
+  clearTimeout(saveTimer);
+  if (unsubSnapshot) { unsubSnapshot(); unsubSnapshot = null; }
+  if (unsubFotos) { unsubFotos(); unsubFotos = null; }
+  usuario = null; fbReady = false; justSaved = false;
+  state = []; fotos = {}; gestorDados = {}; gestorExiste = {};
+  document.getElementById('docas-container').innerHTML = '';
+  document.getElementById('user-email').textContent = '';
+  document.getElementById('btn-gestor').style.display = 'none';
+  document.getElementById('gestor-panel').style.display = 'none';
+}
+
+async function sair() {
+  try { if (fbReady && state.length) await saveToFirestore(); } catch (e) { /* segue para sair */ }
+  auth.signOut();
+}
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function renderAll() {
@@ -1686,10 +1818,10 @@ function buildCard(d) {
   wrap.innerHTML = `
     <div class="doca-card-header" onclick="toggleCard(${d.id})">
       <div class="doca-info">
-        <div class="doca-badge">${d.num}</div>
+        <div class="doca-badge">${esc(d.num)}</div>
         <div>
-          <div class="doca-title">Doca ${d.num}</div>
-          <div class="doca-subtitle">${d.modelo}</div>
+          <div class="doca-title">Doca ${esc(d.num)}</div>
+          <div class="doca-subtitle">${esc(d.modelo)}</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
@@ -1709,11 +1841,11 @@ function buildCard(d) {
       <div class="meta-grid" style="gap:6px;margin-top:6px;">
         <div class="field">
           <label>Data (esta doca)</label>
-          <input type="date" value="${d.data||''}" ${d.locked ? 'disabled' : ''} onchange="setDocaField(${d.id},'data',this.value,'dataManual')" />
+          <input type="date" value="${esc(d.data)}" ${d.locked ? 'disabled' : ''} onchange="setDocaField(${d.id},'data',this.value,'dataManual')" />
         </div>
         <div class="field">
           <label>Responsável</label>
-          <input type="text" id="resp-${d.id}" value="${d.resp||''}" ${d.locked ? 'disabled' : ''} placeholder="${respPlaceholder().replace(/"/g, '&quot;')}" onblur="setDocaField(${d.id},'resp',this.value,'respManual')" />
+          <input type="text" id="resp-${d.id}" value="${esc(d.resp)}" ${d.locked ? 'disabled' : ''} placeholder="${esc(respPlaceholder())}" onblur="setDocaField(${d.id},'resp',this.value,'respManual')" />
         </div>
       </div>
       <div id="conf-${d.id}">${confirmHtml(d)}</div>
@@ -1743,11 +1875,11 @@ function pendencias(d) {
 
 function confirmHtml(d) {
   if (d.locked)
-    return `<div class="doca-locked-info">🔒 Confirmada por <strong>${d.resp||'—'}</strong> em <strong>${fmtDate(d.data)||'—'}</strong></div>`;
+    return `<div class="doca-locked-info">🔒 Confirmada por <strong>${esc(d.resp) || '—'}</strong> em <strong>${fmtDate(d.data)||'—'}</strong></div>`;
   const p = pendencias(d);
   return p.length
     ? `<div class="confirm-pend">Falta: ${p.join(', ')}</div>`
-    : `<button class="confirm-btn" onclick="confirmarDoca(${d.id})">✓ Confirmar Doca ${d.num}</button>`;
+    : `<button class="confirm-btn" onclick="confirmarDoca(${d.id})">✓ Confirmar Doca ${esc(d.num)}</button>`;
 }
 
 // Atualiza só a área de confirmação (sem renderAll, que roubaria o foco/toque do campo em edição).
@@ -1779,7 +1911,7 @@ function buildStatusBlock(d, campo, label, habilitado) {
     <div class="status-block">
       <div class="status-block-label">${label}</div>
       <div class="status-btns">${btns}</div>
-      ${showObs ? `<div class="obs-area"><textarea ${dis} placeholder="Descreva o problema..." oninput="setObs(${d.id},'${campoObs}',this.value)">${d[campoObs]||''}</textarea></div>${buildFotos(d, campo)}` : ''}
+      ${showObs ? `<div class="obs-area"><textarea ${dis} placeholder="Descreva o problema..." oninput="setObs(${d.id},'${campoObs}',this.value)">${esc(d[campoObs])}</textarea></div>${buildFotos(d, campo)}` : ''}
     </div>
   `;
 }
@@ -1792,7 +1924,7 @@ const fotosRef = () => db.collection('checklists').doc(currentUnitKey + '_' + mo
 
 function thumbsHtml(num, campo, removivel) {
   return fotosDe(num, campo).map(f => `<div class="foto-th"><img src="${f.dados}" alt="Foto" onclick="verFoto('${f.id}')">`
-    + (removivel ? `<button class="foto-x" onclick="removeFoto('${f.id}')">✕</button>` : '') + '</div>').join('');
+    + (removivel && podeRemoverFoto(f) ? `<button class="foto-x" onclick="removeFoto('${f.id}')">✕</button>` : '') + '</div>').join('');
 }
 
 function buildFotos(d, campo) {
@@ -1822,18 +1954,22 @@ async function addFotos(id, campo, input) {
   for (const f of files.slice(0, room)) {
     try {
       const dados = await comprimirFoto(f);
-      fotosRef().add({ doca: d.num, campo, dados, criadoEm: Date.now() })
+      fotosRef().add({ doca: d.num, campo, dados, criadoEm: Date.now(), autor: usuario.email, autorUid: usuario.uid })
         .catch(e => { console.error('foto error:', e); showToast('Erro ao salvar foto'); });
     } catch (e) { console.error('foto error:', e); showToast('Não foi possível ler a foto'); }
   }
 }
 
+// só quem enviou a foto (ou o gestor) remove — as regras do Firestore aplicam o mesmo
+const podeRemoverFoto = f => ehGestor() || (!!usuario && f.autorUid === usuario.uid);
+
 function removeFoto(fotoId) {
-  if (confirm('Remover esta foto?')) fotosRef().doc(fotoId).delete();
+  if (confirm('Remover esta foto?'))
+    fotosRef().doc(fotoId).delete().catch(e => { console.warn('remover foto:', e); showToast('Sem permissão para remover esta foto'); });
 }
 
 function apagarFotos(num, campo) {
-  fotosDe(num, campo).forEach(f => fotosRef().doc(f.id).delete());
+  fotosDe(num, campo).filter(podeRemoverFoto).forEach(f => fotosRef().doc(f.id).delete().catch(e => console.warn('apagar foto:', e)));
 }
 
 function verFoto(fotoId) {
@@ -1890,6 +2026,7 @@ function confirmarDoca(id) {
   const d = state.find(x => x.id === id);
   if (!d || d.locked || pendencias(d).length) return;
   d.resp = d.resp || respGlobal();
+  d.confirmadoPor = usuario.email;
   d.locked = true;
   d.open = false;
   renderAll();
@@ -1964,19 +2101,19 @@ function updateCorretivas() {
   list.innerHTML = items.map(it => `
     <div class="corretiva-item">
       <div class="corretiva-head">
-        <span class="corretiva-doca">Doca ${it.doca}</span>
+        <span class="corretiva-doca">Doca ${esc(it.doca)}</span>
         <span class="corretiva-equip">${it.equip}</span>
       </div>
-      <div class="corretiva-text">${it.obs}</div>
+      <div class="corretiva-text">${esc(it.obs)}</div>
       <div class="foto-row" style="margin:0 0 8px;">${thumbsHtml(it.num, it.campo, false)}</div>
       <div class="corretiva-grid">
         <div class="cfield">
           <label>Data Atendimento</label>
-          <input type="date" value="${it.atend||''}" onchange="setCorretivaField(${it.id},'${it.atendField}',this.value)" />
+          <input type="date" value="${esc(it.atend)}" onchange="setCorretivaField(${it.id},'${it.atendField}',this.value)" />
         </div>
         <div class="cfield">
           <label>Motivo</label>
-          <input type="text" placeholder="Motivo" value="${it.motivo||''}" onchange="setCorretivaField(${it.id},'${it.motivoField}',this.value)" />
+          <input type="text" placeholder="Motivo" value="${esc(it.motivo)}" onchange="setCorretivaField(${it.id},'${it.motivoField}',this.value)" />
         </div>
       </div>
     </div>
@@ -2149,36 +2286,65 @@ async function exportXLSX() {
 let gestorDados = {};
 let gestorExiste = {};
 
-function openGestorLogin() {
-  document.getElementById('gestor-senha').value = '';
-  document.getElementById('gestor-erro').textContent = '';
-  document.getElementById('gestor-login-modal').style.display = 'flex';
-}
-
-function closeGestorLogin() {
-  document.getElementById('gestor-login-modal').style.display = 'none';
-}
-
-async function gestorLogin() {
-  const senha = document.getElementById('gestor-senha').value;
-  try {
-    const snap = await db.collection('_config').doc('gestor').get();
-    if (!snap.exists) {
-      document.getElementById('gestor-erro').textContent = 'Documento _config/gestor não encontrado no Firestore.';
-      return;
-    }
-    const senhaCorreta = snap.data().senha ?? snap.data().gestor?.senha;
-    if (senhaCorreta !== senha) {
-      document.getElementById('gestor-erro').textContent = 'Senha incorreta.';
-      return;
-    }
-  } catch(e) {
-    document.getElementById('gestor-erro').textContent = 'Erro: ' + e.message;
-    return;
-  }
-  closeGestorLogin();
+function abrirGestor() {
+  if (!ehGestor()) return;
   document.getElementById('gestor-mes').value = monthKey();
   document.getElementById('gestor-panel').style.display = 'flex';
+  usuariosCarregar();
+}
+
+// ── USUÁRIOS (coleção usuarios, ID = e-mail em minúsculas) ───────────────────
+let usuariosLista = [];
+
+async function usuariosCarregar() {
+  const box = document.getElementById('usuarios-lista');
+  try {
+    const snap = await db.collection('usuarios').get();
+    usuariosLista = snap.docs.map(x => ({ email: x.id, ...x.data() }))
+      .sort((a, b) => (a.nome || a.email).localeCompare(b.nome || b.email, 'pt-BR'));
+  } catch (e) {
+    console.error('usuarios:', e);
+    box.innerHTML = '<p style="color:#CC0000;font-size:12px;">Não foi possível carregar os usuários.</p>';
+    return;
+  }
+  box.innerHTML = usuariosLista.map(u => {
+    const eu = u.email === usuario.email;
+    const ativo = u.ativo === true;
+    return `<div class="usr-row ${ativo ? '' : 'inativo'}">
+      <div class="usr-info">
+        <div class="usr-nome">${esc(u.nome || '—')}${eu ? ' (você)' : ''} · ${u.papel === 'gestor' ? 'Gestor' : 'Técnico'} · ${ativo ? 'Ativo' : 'Inativo'}</div>
+        <div class="usr-mail">${esc(u.email)}</div>
+      </div>
+      ${eu ? '' : `<button data-email="${esc(u.email)}" onclick="usuarioAlternar(this.dataset.email)">${ativo ? 'Desativar' : 'Ativar'}</button>`}
+    </div>`;
+  }).join('') || '<p style="color:#777;font-size:12px;">Nenhum usuário cadastrado.</p>';
+}
+
+async function usuarioAdicionar() {
+  const email = document.getElementById('usr-email').value.trim().toLowerCase();
+  const nome = document.getElementById('usr-nome').value.trim();
+  const papel = document.getElementById('usr-papel').value === 'gestor' ? 'gestor' : 'tecnico';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Informe um e-mail válido'); return; }
+  if (!nome) { showToast('Informe o nome'); return; }
+  try {
+    const ref = db.collection('usuarios').doc(email);
+    if ((await ref.get()).exists) { showToast('Esse e-mail já está cadastrado'); return; }
+    await ref.set({ nome, papel, ativo: true, criadoEm: firebase.firestore.FieldValue.serverTimestamp(), criadoPor: usuario.email });
+    document.getElementById('usr-email').value = '';
+    document.getElementById('usr-nome').value = '';
+    showToast('Usuário adicionado');
+    usuariosCarregar();
+  } catch (e) { console.error('adicionar usuario:', e); showToast('Erro ao adicionar usuário'); }
+}
+
+async function usuarioAlternar(email) {
+  if (email === usuario.email) { showToast('Você não pode desativar a si mesmo'); return; }
+  const u = usuariosLista.find(x => x.email === email);
+  if (!u) return;
+  try {
+    await db.collection('usuarios').doc(email).update({ ativo: u.ativo !== true });
+    usuariosCarregar();
+  } catch (e) { console.error('alternar usuario:', e); showToast('Erro ao atualizar usuário'); }
 }
 
 function fecharGestor() {
@@ -2276,10 +2442,10 @@ function gestorRenderBloqueadas() {
   list.innerHTML = items.map(it => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee;">
       <div>
-        <div style="font-size:12px;font-weight:600;color:#1a1a18;">${it.label} — Doca ${it.doca}</div>
-        <div style="font-size:11px;color:#777;">Confirmada por ${it.resp||'—'} em ${fmtDate(it.data)||'—'}</div>
+        <div style="font-size:12px;font-weight:600;color:#1a1a18;">${esc(it.label)} — Doca ${esc(it.doca)}</div>
+        <div style="font-size:11px;color:#777;">Confirmada por ${esc(it.resp) || '—'} em ${fmtDate(it.data)||'—'}</div>
       </div>
-      <button onclick="gestorDesbloquear('${it.key}','${it.doca}')" style="background:#CC0000;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;">Desbloquear</button>
+      <button data-key="${esc(it.key)}" data-doca="${esc(it.doca)}" onclick="gestorDesbloquear(this.dataset.key, this.dataset.doca)" style="background:#CC0000;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;">Desbloquear</button>
     </div>
   `).join('');
 }

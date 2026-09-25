@@ -425,6 +425,26 @@ if (ENV === 'dev') {
   .toast.show { opacity: 1; }
 
   /* Gestor */
+  .user-bar { display:flex; justify-content:center; align-items:center; gap:8px; margin:4px 0 0; font-size:11px; color:var(--text-muted); }
+  .user-bar button { background:none; border:none; color:var(--text-muted); font-size:11px; text-decoration:underline; cursor:pointer; padding:0; }
+  #auth-screen { position:fixed; inset:0; z-index:200; background:var(--bg, #f4f4f2); display:flex; align-items:center; justify-content:center; padding:16px; overflow-y:auto; }
+  #auth-screen.oculta { display:none; }
+  .auth-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:28px 22px; width:100%; max-width:360px; text-align:center; font-family:var(--font); }
+  .auth-logo { height:44px; background:#1a1a18; border-radius:8px; padding:8px 12px; margin-bottom:16px; }
+  .auth-card h2 { font-size:17px; margin-bottom:8px; }
+  .auth-card p { font-size:13px; color:var(--text-muted); margin:6px 0; line-height:1.4; }
+  #auth-email { font-weight:700; color:var(--text); word-break:break-all; }
+  #auth-erro { color:#CC0000; min-height:16px; }
+  .auth-btn { display:block; width:100%; margin-top:14px; padding:12px; border-radius:8px; border:none; background:#CC0000; color:#fff; font-size:14px; font-weight:700; font-family:var(--font); cursor:pointer; }
+  .auth-btn-sec { background:none; color:var(--text-muted); border:1px solid var(--border); font-weight:600; }
+  .usr-lista { margin-bottom:12px; }
+  .usr-row { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #eee; font-size:12px; }
+  .usr-row .usr-info { min-width:0; }
+  .usr-row .usr-nome { font-weight:600; color:#1a1a18; }
+  .usr-row .usr-mail { color:#777; word-break:break-all; }
+  .usr-row.inativo .usr-info { opacity:.5; }
+  .usr-row button { border:1px solid #ccc; background:#f4f4f2; border-radius:6px; padding:5px 10px; font-size:11px; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .usr-form input, .usr-form select { background:#f4f4f2; border:1px solid #ccc; color:#1a1a18; border-radius:6px; padding:8px 10px; font-size:13px; flex:1; min-width:120px; }
   .gestor-link { display:block; text-align:center; margin:4px 0 12px; background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; text-decoration:underline; }
   #gestor-panel { position:fixed; inset:0; background:#f0f0ee; z-index:200; display:none; flex-direction:column; overflow-y:auto; font-family:var(--font); }
   .gestor-header { background:#1a1a18; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:10; box-shadow:0 2px 8px rgba(0,0,0,.35); }
@@ -483,7 +503,8 @@ if (ENV === 'dev') {
 
 <div class="container">
 
-  <button class="gestor-link" onclick="openGestorLogin()">🔒 Área do Gestor</button>
+  <div class="user-bar"><span id="user-email"></span><button onclick="sair()">Sair</button></div>
+  <button class="gestor-link" id="btn-gestor" style="display:none;" onclick="abrirGestor()">🔒 Área do Gestor</button>
 
   <div class="unit-card">
     <label>Unidade</label>
@@ -541,22 +562,17 @@ if (ENV === 'dev') {
 
 </div>
 
-<!-- GESTOR LOGIN MODAL -->
-<div class="modal-overlay" id="gestor-login-modal" style="display:none;">
-  <div class="modal">
-    <h3>Área do Gestor</h3>
-    <div class="field" style="margin-top:12px;">
-      <label>Senha</label>
-      <div style="position:relative;">
-        <input type="password" id="gestor-senha" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')gestorLogin()" style="width:100%;padding-right:40px;" />
-        <button type="button" onclick="const i=document.getElementById('gestor-senha');i.type=i.type==='password'?'text':'password'" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted);">👁</button>
-      </div>
-    </div>
-    <p id="gestor-erro" style="color:#CC0000;font-size:12px;margin-top:6px;min-height:16px;"></p>
-    <div style="display:flex;gap:8px;margin-top:12px;">
-      <button class="btn" onclick="closeGestorLogin()">Cancelar</button>
-      <button class="btn btn-primary" onclick="gestorLogin()">Entrar</button>
-    </div>
+<!-- TELA DE LOGIN / ACESSO (cobre o app até o usuário estar autorizado) -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <img class="auth-logo" src="data:image/png;base64,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" alt="Belcito" />
+    <h2 id="auth-titulo">Checklist Preventiva</h2>
+    <p id="auth-texto"></p>
+    <p id="auth-email"></p>
+    <button id="auth-btn-google" class="auth-btn" onclick="entrarGoogle()">Entrar com Google</button>
+    <button id="auth-btn-tentar" class="auth-btn" onclick="verificarAcesso()">Tentar de novo</button>
+    <button id="auth-btn-sair" class="auth-btn auth-btn-sec" onclick="sair()">Sair</button>
+    <p id="auth-erro"></p>
   </div>
 </div>
 
@@ -570,6 +586,17 @@ if (ENV === 'dev') {
     <button class="gestor-sair" onclick="fecharGestor()">✕ Sair</button>
   </div>
   <div class="gestor-body">
+
+    <div class="gestor-card">
+      <h3>Usuários</h3>
+      <div id="usuarios-lista" class="usr-lista"></div>
+      <div class="gestor-controls usr-form">
+        <input type="email" id="usr-email" placeholder="e-mail Google" autocomplete="off" />
+        <input type="text" id="usr-nome" placeholder="Nome" autocomplete="off" />
+        <select id="usr-papel"><option value="tecnico">Técnico</option><option value="gestor">Gestor</option></select>
+        <button class="btn-carregar" onclick="usuarioAdicionar()">Adicionar</button>
+      </div>
+    </div>
 
     <div class="gestor-card">
       <h3>Período</h3>
@@ -1562,17 +1589,7 @@ function init() {
   });
   document.getElementById('obs-geral').addEventListener('input', scheduleSave);
 
-  setSyncStatus('Conectando...');
-  // onAuthStateChanged reaproveita a sessão anônima já persistida localmente,
-  // então funciona mesmo sem rede depois do primeiro login. Só faz login novo
-  // se realmente não houver sessão salva.
-  firebase.auth().onAuthStateChanged(user => {
-    if (user) { fbReady = true; loadUnit(currentUnitKey); }
-  });
-  if (!firebase.auth().currentUser) {
-    firebase.auth().signInAnonymously()
-      .catch(e => { console.error('Auth error:', e); setSyncStatus('Erro de conexão'); });
-  }
+  iniciarAuth();
 }
 
 function onUnitChange() {
@@ -1605,7 +1622,11 @@ function loadUnit(key) {
     return prevRef.get().then(prevSnap => {
       nextId = 1;
       const docas = buildFreshState(key, prevSnap.exists ? prevSnap.data().docas : []);
-      return docRef.set({ unitKey: key, mes, dataGlobal: '', respGlobal: '', docas })
+      return docRef.set({
+        unitKey: key, mes, dataGlobal: '', respGlobal: '', docas,
+        criadoPor: usuario.email, atualizadoPor: usuario.email,
+        criadoEm: firebase.firestore.FieldValue.serverTimestamp(), atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+      })
         .then(() => herdarFotos(prevRef, docRef, docas))
         .then(() => startSnapshot(docRef));
     });
@@ -1618,7 +1639,7 @@ function herdarFotos(prevRef, docRef, docas) {
   return prevRef.collection('fotos').get()
     .then(s => Promise.all(s.docs
       .filter(x => herdada(x.data().doca, x.data().campo))
-      .map(x => docRef.collection('fotos').doc(x.id).set(x.data()))))
+      .map(x => docRef.collection('fotos').doc(x.id).set({ ...x.data(), autorUid: usuario.uid, herdadaPor: usuario.email }))))
     .catch(e => console.warn('Herança de fotos falhou:', e));
 }
 
@@ -1652,19 +1673,130 @@ function scheduleSave() {
 }
 
 function saveToFirestore() {
-  if (!fbReady || !state.length) return;
+  if (!fbReady || !usuario || !state.length) return Promise.resolve();
   justSaved = true;
   const mes = monthKey();
-  db.collection('checklists').doc(currentUnitKey + '_' + mes).update({
+  return db.collection('checklists').doc(currentUnitKey + '_' + mes).update({
     dataGlobal: document.getElementById('data-global').value,
     respGlobal: document.getElementById('resp-global').value,
     obsGeral: document.getElementById('obs-geral').value,
     docas: state,
+    atualizadoPor: usuario.email,
+    atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
   }).then(() => setSyncStatus('✓ Salvo'))
     .catch(e => { console.error('save error:', e); setSyncStatus('Erro ao salvar'); });
 }
 
 function setSyncStatus(msg) { document.getElementById('sync-status').textContent = msg; }
+
+// ── AUTENTICAÇÃO (Google) E AUTORIZAÇÃO (coleção usuarios) ────────────────────
+const auth = firebase.auth();
+let usuario = null; // { email, uid, nome, papel } — só existe depois de autorizado
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ehGestor = () => !!usuario && usuario.papel === 'gestor';
+
+function mostrarTela(qual, dados = {}) {
+  const g = id => document.getElementById(id);
+  if (qual === 'app') { g('auth-screen').classList.add('oculta'); return; }
+  g('auth-screen').classList.remove('oculta');
+  // [título, texto, botão Google, botão Tentar de novo, botão Sair]
+  const cfg = {
+    verificando: ['Verificando acesso...', '', false, false, false],
+    login:       ['Checklist Preventiva', 'Entre com sua conta Google para continuar.', true, false, false],
+    pendente:    ['Acesso pendente', 'Peça ao gestor para liberar seu acesso.', false, true, true],
+    erro:        ['Não foi possível verificar o acesso', 'Verifique sua conexão e tente de novo.', false, true, true],
+  }[qual];
+  g('auth-titulo').textContent = cfg[0];
+  g('auth-texto').textContent = cfg[1];
+  g('auth-email').textContent = dados.email || '';
+  g('auth-btn-google').style.display = cfg[2] ? 'block' : 'none';
+  g('auth-btn-tentar').style.display = cfg[3] ? 'block' : 'none';
+  g('auth-btn-sair').style.display = cfg[4] ? 'block' : 'none';
+  g('auth-erro').textContent = dados.erro || '';
+}
+
+function msgErroLogin(e) {
+  return ({
+    'auth/unauthorized-domain': 'Domínio não autorizado no Firebase (Authentication > Settings > Authorized domains).',
+    'auth/operation-not-allowed': 'Login com Google não está ativado neste projeto do Firebase.',
+    'auth/network-request-failed': 'Sem conexão. Tente de novo.',
+    'auth/popup-blocked': 'O navegador bloqueou a janela de login.',
+  })[e.code] || ('Erro ao entrar: ' + (e.code || e.message));
+}
+
+function iniciarAuth() {
+  setSyncStatus('Conectando...');
+  mostrarTela('verificando');
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {}); // sessão sobrevive offline
+  auth.getRedirectResult().catch(e => mostrarTela('login', { erro: msgErroLogin(e) }));
+  auth.onAuthStateChanged(user => { user ? verificarAcesso() : (encerrarSessao(), mostrarTela('login'), setSyncStatus('')); });
+}
+
+// redirect no celular/PWA instalado (popup não é confiável); popup no desktop
+const usarRedirect = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+async function entrarGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  document.getElementById('auth-erro').textContent = '';
+  try {
+    if (usarRedirect()) await auth.signInWithRedirect(provider);
+    else await auth.signInWithPopup(provider);
+  } catch (e) {
+    if (e.code === 'auth/popup-blocked') {
+      try { await auth.signInWithRedirect(provider); return; } catch (e2) { e = e2; }
+    }
+    if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request')
+      document.getElementById('auth-erro').textContent = msgErroLogin(e);
+  }
+}
+
+async function verificarAcesso() {
+  const user = auth.currentUser;
+  if (!user) { mostrarTela('login'); return; }
+  if (!user.email) { auth.signOut(); return; } // sessão anônima antiga: exige login Google
+  if (usuario && usuario.uid === user.uid && fbReady) return;
+  const email = (user.email || '').toLowerCase();
+  mostrarTela('verificando', { email });
+  const ref = db.collection('usuarios').doc(email);
+  let snap;
+  try { snap = await ref.get(); }
+  catch (e) {
+    try { snap = await ref.get({ source: 'cache' }); } // offline depois do 1º login
+    catch (e2) { console.error('verificarAcesso:', e); mostrarTela('erro', { email }); return; }
+  }
+  const dados = snap.exists ? snap.data() : null;
+  if (!user.emailVerified || !dados || dados.ativo !== true) {
+    encerrarSessao();
+    mostrarTela('pendente', { email });
+    setSyncStatus('');
+    return;
+  }
+  usuario = { email, uid: user.uid, nome: dados.nome || user.displayName || email, papel: dados.papel === 'gestor' ? 'gestor' : 'tecnico' };
+  document.getElementById('user-email').textContent = email;
+  document.getElementById('btn-gestor').style.display = ehGestor() ? 'block' : 'none';
+  fbReady = true;
+  mostrarTela('app');
+  loadUnit(currentUnitKey);
+}
+
+// Solta tudo da sessão anterior (listeners, estado em memória, painel do gestor).
+function encerrarSessao() {
+  clearTimeout(saveTimer);
+  if (unsubSnapshot) { unsubSnapshot(); unsubSnapshot = null; }
+  if (unsubFotos) { unsubFotos(); unsubFotos = null; }
+  usuario = null; fbReady = false; justSaved = false;
+  state = []; fotos = {}; gestorDados = {}; gestorExiste = {};
+  document.getElementById('docas-container').innerHTML = '';
+  document.getElementById('user-email').textContent = '';
+  document.getElementById('btn-gestor').style.display = 'none';
+  document.getElementById('gestor-panel').style.display = 'none';
+}
+
+async function sair() {
+  try { if (fbReady && state.length) await saveToFirestore(); } catch (e) { /* segue para sair */ }
+  auth.signOut();
+}
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function renderAll() {
@@ -1686,10 +1818,10 @@ function buildCard(d) {
   wrap.innerHTML = `
     <div class="doca-card-header" onclick="toggleCard(${d.id})">
       <div class="doca-info">
-        <div class="doca-badge">${d.num}</div>
+        <div class="doca-badge">${esc(d.num)}</div>
         <div>
-          <div class="doca-title">Doca ${d.num}</div>
-          <div class="doca-subtitle">${d.modelo}</div>
+          <div class="doca-title">Doca ${esc(d.num)}</div>
+          <div class="doca-subtitle">${esc(d.modelo)}</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
@@ -1709,11 +1841,11 @@ function buildCard(d) {
       <div class="meta-grid" style="gap:6px;margin-top:6px;">
         <div class="field">
           <label>Data (esta doca)</label>
-          <input type="date" value="${d.data||''}" ${d.locked ? 'disabled' : ''} onchange="setDocaField(${d.id},'data',this.value,'dataManual')" />
+          <input type="date" value="${esc(d.data)}" ${d.locked ? 'disabled' : ''} onchange="setDocaField(${d.id},'data',this.value,'dataManual')" />
         </div>
         <div class="field">
           <label>Responsável</label>
-          <input type="text" id="resp-${d.id}" value="${d.resp||''}" ${d.locked ? 'disabled' : ''} placeholder="${respPlaceholder().replace(/"/g, '&quot;')}" onblur="setDocaField(${d.id},'resp',this.value,'respManual')" />
+          <input type="text" id="resp-${d.id}" value="${esc(d.resp)}" ${d.locked ? 'disabled' : ''} placeholder="${esc(respPlaceholder())}" onblur="setDocaField(${d.id},'resp',this.value,'respManual')" />
         </div>
       </div>
       <div id="conf-${d.id}">${confirmHtml(d)}</div>
@@ -1743,11 +1875,11 @@ function pendencias(d) {
 
 function confirmHtml(d) {
   if (d.locked)
-    return `<div class="doca-locked-info">🔒 Confirmada por <strong>${d.resp||'—'}</strong> em <strong>${fmtDate(d.data)||'—'}</strong></div>`;
+    return `<div class="doca-locked-info">🔒 Confirmada por <strong>${esc(d.resp) || '—'}</strong> em <strong>${fmtDate(d.data)||'—'}</strong></div>`;
   const p = pendencias(d);
   return p.length
     ? `<div class="confirm-pend">Falta: ${p.join(', ')}</div>`
-    : `<button class="confirm-btn" onclick="confirmarDoca(${d.id})">✓ Confirmar Doca ${d.num}</button>`;
+    : `<button class="confirm-btn" onclick="confirmarDoca(${d.id})">✓ Confirmar Doca ${esc(d.num)}</button>`;
 }
 
 // Atualiza só a área de confirmação (sem renderAll, que roubaria o foco/toque do campo em edição).
@@ -1779,7 +1911,7 @@ function buildStatusBlock(d, campo, label, habilitado) {
     <div class="status-block">
       <div class="status-block-label">${label}</div>
       <div class="status-btns">${btns}</div>
-      ${showObs ? `<div class="obs-area"><textarea ${dis} placeholder="Descreva o problema..." oninput="setObs(${d.id},'${campoObs}',this.value)">${d[campoObs]||''}</textarea></div>${buildFotos(d, campo)}` : ''}
+      ${showObs ? `<div class="obs-area"><textarea ${dis} placeholder="Descreva o problema..." oninput="setObs(${d.id},'${campoObs}',this.value)">${esc(d[campoObs])}</textarea></div>${buildFotos(d, campo)}` : ''}
     </div>
   `;
 }
@@ -1792,7 +1924,7 @@ const fotosRef = () => db.collection('checklists').doc(currentUnitKey + '_' + mo
 
 function thumbsHtml(num, campo, removivel) {
   return fotosDe(num, campo).map(f => `<div class="foto-th"><img src="${f.dados}" alt="Foto" onclick="verFoto('${f.id}')">`
-    + (removivel ? `<button class="foto-x" onclick="removeFoto('${f.id}')">✕</button>` : '') + '</div>').join('');
+    + (removivel && podeRemoverFoto(f) ? `<button class="foto-x" onclick="removeFoto('${f.id}')">✕</button>` : '') + '</div>').join('');
 }
 
 function buildFotos(d, campo) {
@@ -1822,18 +1954,22 @@ async function addFotos(id, campo, input) {
   for (const f of files.slice(0, room)) {
     try {
       const dados = await comprimirFoto(f);
-      fotosRef().add({ doca: d.num, campo, dados, criadoEm: Date.now() })
+      fotosRef().add({ doca: d.num, campo, dados, criadoEm: Date.now(), autor: usuario.email, autorUid: usuario.uid })
         .catch(e => { console.error('foto error:', e); showToast('Erro ao salvar foto'); });
     } catch (e) { console.error('foto error:', e); showToast('Não foi possível ler a foto'); }
   }
 }
 
+// só quem enviou a foto (ou o gestor) remove — as regras do Firestore aplicam o mesmo
+const podeRemoverFoto = f => ehGestor() || (!!usuario && f.autorUid === usuario.uid);
+
 function removeFoto(fotoId) {
-  if (confirm('Remover esta foto?')) fotosRef().doc(fotoId).delete();
+  if (confirm('Remover esta foto?'))
+    fotosRef().doc(fotoId).delete().catch(e => { console.warn('remover foto:', e); showToast('Sem permissão para remover esta foto'); });
 }
 
 function apagarFotos(num, campo) {
-  fotosDe(num, campo).forEach(f => fotosRef().doc(f.id).delete());
+  fotosDe(num, campo).filter(podeRemoverFoto).forEach(f => fotosRef().doc(f.id).delete().catch(e => console.warn('apagar foto:', e)));
 }
 
 function verFoto(fotoId) {
@@ -1890,6 +2026,7 @@ function confirmarDoca(id) {
   const d = state.find(x => x.id === id);
   if (!d || d.locked || pendencias(d).length) return;
   d.resp = d.resp || respGlobal();
+  d.confirmadoPor = usuario.email;
   d.locked = true;
   d.open = false;
   renderAll();
@@ -1964,19 +2101,19 @@ function updateCorretivas() {
   list.innerHTML = items.map(it => `
     <div class="corretiva-item">
       <div class="corretiva-head">
-        <span class="corretiva-doca">Doca ${it.doca}</span>
+        <span class="corretiva-doca">Doca ${esc(it.doca)}</span>
         <span class="corretiva-equip">${it.equip}</span>
       </div>
-      <div class="corretiva-text">${it.obs}</div>
+      <div class="corretiva-text">${esc(it.obs)}</div>
       <div class="foto-row" style="margin:0 0 8px;">${thumbsHtml(it.num, it.campo, false)}</div>
       <div class="corretiva-grid">
         <div class="cfield">
           <label>Data Atendimento</label>
-          <input type="date" value="${it.atend||''}" onchange="setCorretivaField(${it.id},'${it.atendField}',this.value)" />
+          <input type="date" value="${esc(it.atend)}" onchange="setCorretivaField(${it.id},'${it.atendField}',this.value)" />
         </div>
         <div class="cfield">
           <label>Motivo</label>
-          <input type="text" placeholder="Motivo" value="${it.motivo||''}" onchange="setCorretivaField(${it.id},'${it.motivoField}',this.value)" />
+          <input type="text" placeholder="Motivo" value="${esc(it.motivo)}" onchange="setCorretivaField(${it.id},'${it.motivoField}',this.value)" />
         </div>
       </div>
     </div>
@@ -2149,36 +2286,65 @@ async function exportXLSX() {
 let gestorDados = {};
 let gestorExiste = {};
 
-function openGestorLogin() {
-  document.getElementById('gestor-senha').value = '';
-  document.getElementById('gestor-erro').textContent = '';
-  document.getElementById('gestor-login-modal').style.display = 'flex';
-}
-
-function closeGestorLogin() {
-  document.getElementById('gestor-login-modal').style.display = 'none';
-}
-
-async function gestorLogin() {
-  const senha = document.getElementById('gestor-senha').value;
-  try {
-    const snap = await db.collection('_config').doc('gestor').get();
-    if (!snap.exists) {
-      document.getElementById('gestor-erro').textContent = 'Documento _config/gestor não encontrado no Firestore.';
-      return;
-    }
-    const senhaCorreta = snap.data().senha ?? snap.data().gestor?.senha;
-    if (senhaCorreta !== senha) {
-      document.getElementById('gestor-erro').textContent = 'Senha incorreta.';
-      return;
-    }
-  } catch(e) {
-    document.getElementById('gestor-erro').textContent = 'Erro: ' + e.message;
-    return;
-  }
-  closeGestorLogin();
+function abrirGestor() {
+  if (!ehGestor()) return;
   document.getElementById('gestor-mes').value = monthKey();
   document.getElementById('gestor-panel').style.display = 'flex';
+  usuariosCarregar();
+}
+
+// ── USUÁRIOS (coleção usuarios, ID = e-mail em minúsculas) ───────────────────
+let usuariosLista = [];
+
+async function usuariosCarregar() {
+  const box = document.getElementById('usuarios-lista');
+  try {
+    const snap = await db.collection('usuarios').get();
+    usuariosLista = snap.docs.map(x => ({ email: x.id, ...x.data() }))
+      .sort((a, b) => (a.nome || a.email).localeCompare(b.nome || b.email, 'pt-BR'));
+  } catch (e) {
+    console.error('usuarios:', e);
+    box.innerHTML = '<p style="color:#CC0000;font-size:12px;">Não foi possível carregar os usuários.</p>';
+    return;
+  }
+  box.innerHTML = usuariosLista.map(u => {
+    const eu = u.email === usuario.email;
+    const ativo = u.ativo === true;
+    return `<div class="usr-row ${ativo ? '' : 'inativo'}">
+      <div class="usr-info">
+        <div class="usr-nome">${esc(u.nome || '—')}${eu ? ' (você)' : ''} · ${u.papel === 'gestor' ? 'Gestor' : 'Técnico'} · ${ativo ? 'Ativo' : 'Inativo'}</div>
+        <div class="usr-mail">${esc(u.email)}</div>
+      </div>
+      ${eu ? '' : `<button data-email="${esc(u.email)}" onclick="usuarioAlternar(this.dataset.email)">${ativo ? 'Desativar' : 'Ativar'}</button>`}
+    </div>`;
+  }).join('') || '<p style="color:#777;font-size:12px;">Nenhum usuário cadastrado.</p>';
+}
+
+async function usuarioAdicionar() {
+  const email = document.getElementById('usr-email').value.trim().toLowerCase();
+  const nome = document.getElementById('usr-nome').value.trim();
+  const papel = document.getElementById('usr-papel').value === 'gestor' ? 'gestor' : 'tecnico';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Informe um e-mail válido'); return; }
+  if (!nome) { showToast('Informe o nome'); return; }
+  try {
+    const ref = db.collection('usuarios').doc(email);
+    if ((await ref.get()).exists) { showToast('Esse e-mail já está cadastrado'); return; }
+    await ref.set({ nome, papel, ativo: true, criadoEm: firebase.firestore.FieldValue.serverTimestamp(), criadoPor: usuario.email });
+    document.getElementById('usr-email').value = '';
+    document.getElementById('usr-nome').value = '';
+    showToast('Usuário adicionado');
+    usuariosCarregar();
+  } catch (e) { console.error('adicionar usuario:', e); showToast('Erro ao adicionar usuário'); }
+}
+
+async function usuarioAlternar(email) {
+  if (email === usuario.email) { showToast('Você não pode desativar a si mesmo'); return; }
+  const u = usuariosLista.find(x => x.email === email);
+  if (!u) return;
+  try {
+    await db.collection('usuarios').doc(email).update({ ativo: u.ativo !== true });
+    usuariosCarregar();
+  } catch (e) { console.error('alternar usuario:', e); showToast('Erro ao atualizar usuário'); }
 }
 
 function fecharGestor() {
@@ -2276,10 +2442,10 @@ function gestorRenderBloqueadas() {
   list.innerHTML = items.map(it => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee;">
       <div>
-        <div style="font-size:12px;font-weight:600;color:#1a1a18;">${it.label} — Doca ${it.doca}</div>
-        <div style="font-size:11px;color:#777;">Confirmada por ${it.resp||'—'} em ${fmtDate(it.data)||'—'}</div>
+        <div style="font-size:12px;font-weight:600;color:#1a1a18;">${esc(it.label)} — Doca ${esc(it.doca)}</div>
+        <div style="font-size:11px;color:#777;">Confirmada por ${esc(it.resp) || '—'} em ${fmtDate(it.data)||'—'}</div>
       </div>
-      <button onclick="gestorDesbloquear('${it.key}','${it.doca}')" style="background:#CC0000;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;">Desbloquear</button>
+      <button data-key="${esc(it.key)}" data-doca="${esc(it.doca)}" onclick="gestorDesbloquear(this.dataset.key, this.dataset.doca)" style="background:#CC0000;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;">Desbloquear</button>
     </div>
   `).join('');
 }
