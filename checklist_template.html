@@ -583,7 +583,8 @@ if (ENV === 'dev') {
   .status-dica { font-size: 12px; color: var(--muted); }
   .status-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .sbtn { height: 56px; padding: 0 8px; display: flex; align-items: center; justify-content: center; gap: 8px; background: #FAF9F6; border: 1.5px solid var(--border-strong); border-radius: 12px; color: #3B3733; font-family: var(--font); font-size: 15px; font-weight: 600; line-height: 1.15; }
-  .sbtn svg { flex-shrink: 0; }
+  .sbtn svg { flex-shrink: 0; color: var(--muted); }
+  .sbtn[class*="active-"] svg { color: currentColor; }
   @media (max-width: 420px) { .sbtn { padding: 0 6px; gap: 6px; font-size: 14px; } .sbtn svg { width: 20px; height: 20px; } }
   @media (max-width: 370px) { .sbtn { font-size: 13.5px; } .sbtn svg { width: 18px; height: 18px; } }
   .sbtn.active-ok { background: var(--st-ok-bg); color: var(--st-ok-fg); border: 2px solid #5E9A3A; }
@@ -2051,7 +2052,7 @@ function refreshConfirm(d) {
   if (r) r.placeholder = respPlaceholder();
 }
 
-// Ícones dos botões de status (o estado selecionado nunca depende só da cor)
+// Ícones dos botões de status: sempre visíveis (mesmo ícone; cinza quando livre, na cor do status quando selecionado)
 const ICONE_STATUS = {
   ok: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   ressalva: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.6v.01"/></svg>',
@@ -2073,7 +2074,7 @@ function buildStatusBlock(d, campo, label, habilitado) {
   const dis = d.locked ? 'disabled' : '';
   const btns = keys.map(k => {
     const active = d[campo] === k ? STATUS_INFO[k].cls : '';
-    return `<button class="sbtn ${active}" ${dis} aria-pressed="${active ? 'true' : 'false'}" onclick="setStatus(${d.id},'${campo}','${k}')">${active ? ICONE_STATUS[k] : ''}<span>${STATUS_INFO[k].label}</span></button>`;
+    return `<button class="sbtn ${active}" ${dis} aria-pressed="${active ? 'true' : 'false'}" onclick="setStatus(${d.id},'${campo}','${k}')">${ICONE_STATUS[k]}<span>${STATUS_INFO[k].label}</span></button>`;
   }).join('');
   const showObs = d[campo] === 'ressalva' || d[campo] === 'naook';
   return `
