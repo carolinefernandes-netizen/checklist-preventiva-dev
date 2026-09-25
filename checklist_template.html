@@ -1,0 +1,2230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checklist Preventiva — Belcito</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1a18">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CheckList">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon.png">
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #3B6D11; --green-bg: #EAF3DE; --green-border: #639922;
+    --amber: #854F0B; --amber-bg: #FAEEDA; --amber-border: #BA7517;
+    --red: #A32D2D; --red-bg: #FCEBEB; --red-border: #E24B4A;
+    --blue: #185FA5; --blue-bg: #E6F1FB; --blue-border: #378ADD;
+    --gray: #444441; --gray-light: #F1EFE8; --gray-border: #B4B2A9;
+    --text: #2C2C2A; --text-muted: #888780; --text-light: #5F5E5A;
+    --surface: #fff; --surface-1: #F9F8F5; --surface-2: #F1EFE8;
+    --border: #D3D1C7; --radius: 10px;
+    --font: -apple-system, 'Segoe UI', Arial, sans-serif;
+    --belcito-red: #CC0000; --belcito-orange: #FF9900;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--surface-1);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 2rem;
+  }
+
+  /* HEADER */
+  .page-header {
+    background: #1a1a18;
+    color: #fff;
+    padding: 0.85rem 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .page-header .logo-belcito, .page-header .logo-cliente { flex-shrink: 0; }
+  .page-header img { height: 45px; max-width: 98px; object-fit: contain; }
+  .page-header .header-text { text-align: center; flex: 1; min-width: 0; padding: 0 6px; }
+  .page-header h1 { font-size: 14px; font-weight: 600; line-height: 1.2; }
+  .page-header p { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+  /* BODY */
+  .container { max-width: 600px; margin: 0 auto; padding: 1rem; }
+
+  /* UNIT SELECTOR */
+  .unit-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  .unit-card label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 5px;
+  }
+  .unit-card select {
+    width: 100%;
+    padding: 10px 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: var(--font);
+    color: var(--text);
+    background: var(--surface-1);
+    -webkit-appearance: none;
+  }
+
+  /* META FIELDS */
+  .meta-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 5px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: var(--font);
+    color: var(--text);
+    background: var(--surface-1);
+    -webkit-appearance: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none;
+    border-color: var(--blue-border);
+    box-shadow: 0 0 0 3px rgba(55,138,221,0.15);
+  }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 1.25rem 0 0.6rem;
+  }
+
+  /* DOCA CARD */
+  .doca-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+  }
+  .doca-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-1);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .doca-card-header:active { background: var(--surface-2); }
+  .doca-info { display: flex; align-items: center; gap: 10px; }
+  .doca-badge {
+    width: 36px; height: 36px;
+    background: var(--surface-2);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    color: var(--text-light);
+    flex-shrink: 0;
+  }
+  .doca-title { font-size: 14px; font-weight: 600; }
+  .doca-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .doca-status-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+  .pill {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 7px;
+    border-radius: 20px;
+    line-height: 1;
+  }
+  .pill-ok { background: var(--green-bg); color: var(--green); }
+  .pill-ressalva { background: var(--amber-bg); color: var(--amber); }
+  .pill-naook { background: var(--red-bg); color: var(--red); }
+  .pill-naoapl { background: var(--blue-bg); color: var(--blue); }
+  .pill-vazio { background: var(--gray-light); color: var(--text-muted); }
+  .chevron {
+    font-size: 18px;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+    margin-left: 6px;
+  }
+  .chevron.open { transform: rotate(180deg); }
+
+  .doca-body { padding: 0.85rem 1rem; display: none; }
+  .doca-body.open { display: block; }
+
+  /* STATUS BLOCK */
+  .status-block { margin-bottom: 0.85rem; }
+  .status-block:last-child { margin-bottom: 0; }
+  .status-block-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 6px;
+  }
+  .status-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .sbtn {
+    padding: 9px 8px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--surface-1);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-family: var(--font);
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.12s;
+    line-height: 1.3;
+    -webkit-appearance: none;
+  }
+  .sbtn:active { transform: scale(0.97); }
+  .sbtn.active-ok { border-color: var(--green-border); background: var(--green-bg); color: var(--green); }
+  .sbtn.active-ressalva { border-color: var(--amber-border); background: var(--amber-bg); color: var(--amber); }
+  .sbtn.active-naook { border-color: var(--red-border); background: var(--red-bg); color: var(--red); }
+  .sbtn.active-naoapl { border-color: var(--blue-border); background: var(--blue-bg); color: var(--blue); }
+  .na-locked {
+    padding: 9px 8px;
+    border-radius: 8px;
+    border: 1.5px dashed var(--blue-border);
+    background: var(--blue-bg);
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .obs-area { margin-top: 6px; }
+  .obs-area textarea {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: var(--font);
+    color: var(--text);
+    background: var(--surface-1);
+    resize: none;
+    min-height: 58px;
+  }
+  .obs-area textarea:focus {
+    outline: none;
+    border-color: var(--amber-border);
+    box-shadow: 0 0 0 3px rgba(186,117,23,0.12);
+  }
+
+  .foto-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .foto-th { position: relative; width: 72px; height: 72px; }
+  .foto-th img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
+  .foto-x {
+    position: absolute; top: -6px; right: -6px; width: 22px; height: 22px;
+    border-radius: 50%; border: none; background: #A32D2D; color: #fff;
+    font-size: 11px; line-height: 22px; padding: 0; cursor: pointer;
+  }
+  .foto-add {
+    display: flex; align-items: center; justify-content: center;
+    min-width: 72px; height: 72px; padding: 0 10px; box-sizing: border-box;
+    border: 1px dashed var(--amber-border); border-radius: 8px;
+    color: var(--amber); font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  #foto-view {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,.88); align-items: center; justify-content: center;
+  }
+  #foto-view.open { display: flex; }
+  #foto-view img { max-width: 96vw; max-height: 96vh; }
+
+  .divider { height: 1px; background: var(--border); margin: 0.75rem 0; }
+
+  /* SUMMARY */
+  .summary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+  .summary h3 {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.75rem;
+  }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .scard { border-radius: 8px; padding: 0.65rem 0.75rem; }
+  .scard .num { font-size: 26px; font-weight: 700; line-height: 1; }
+  .scard .lbl { font-size: 11px; margin-top: 3px; font-weight: 500; }
+  .scard-ok { background: var(--green-bg); }
+  .scard-ok .num, .scard-ok .lbl { color: var(--green); }
+  .scard-res { background: var(--amber-bg); }
+  .scard-res .num, .scard-res .lbl { color: var(--amber); }
+  .scard-nok { background: var(--red-bg); }
+  .scard-nok .num, .scard-nok .lbl { color: var(--red); }
+  .scard-na { background: var(--blue-bg); }
+  .scard-na .num, .scard-na .lbl { color: var(--blue); }
+
+  /* PROGRESS */
+  .progress-bar-wrap { margin-top: 0.75rem; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
+  .progress-bar { height: 6px; background: var(--surface-2); border-radius: 10px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green-border); border-radius: 10px; transition: width 0.3s; }
+
+  /* CORRETIVAS */
+  .corretiva-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.7rem 0.8rem;
+    margin-bottom: 0.6rem;
+    background: var(--amber-bg);
+  }
+  .corretiva-item:last-child { margin-bottom: 0; }
+  .corretiva-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .corretiva-doca { font-size: 13px; font-weight: 700; color: var(--amber); }
+  .corretiva-equip { font-size: 11px; color: var(--text-muted); }
+  .corretiva-text { font-size: 13px; color: var(--text); line-height: 1.4; margin-bottom: 8px; }
+  .corretiva-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .corretiva-grid .cfield label { display:block; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 3px; }
+  .corretiva-grid .cfield input {
+    width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: 7px;
+    font-size: 12px; font-family: var(--font); background: var(--surface);
+  }
+  .empty-corretivas { font-size: 13px; color: var(--text-muted); text-align: center; padding: 1rem 0; }
+
+  /* ACTIONS */
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 1rem; }
+  .btn {
+    padding: 13px 10px;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-size: 14px;
+    font-family: var(--font);
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    text-align: center;
+    -webkit-appearance: none;
+    transition: all 0.12s;
+  }
+  .btn:active { transform: scale(0.98); background: var(--surface-2); }
+  .btn-primary { background: #1a1a18; color: #fff; border-color: transparent; }
+  .btn-primary:active { background: #333; }
+  .btn:disabled { opacity: 0.5; }
+
+  /* ADD DOCA */
+  .add-doca-btn {
+    width: 100%;
+    padding: 12px;
+    border: 1.5px dashed var(--gray-border);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-family: var(--font);
+    cursor: pointer;
+    margin-top: 0.25rem;
+    -webkit-appearance: none;
+  }
+  .add-doca-btn:active { background: var(--surface-2); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 16px 16px 0 0;
+    padding: 1.25rem 1rem 2rem;
+    width: 100%;
+    max-width: 600px;
+  }
+  .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 1rem; }
+  .modal .field { margin-bottom: 10px; }
+  .modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 1rem; }
+  .modal label.checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text); margin-top: 8px; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+    background: #1a1a18; color: #fff;
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 13px;
+    z-index: 300;
+    opacity: 0;
+    transition: opacity 0.25s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Gestor */
+  .gestor-link { display:block; text-align:center; margin:4px 0 12px; background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; text-decoration:underline; }
+  #gestor-panel { position:fixed; inset:0; background:#f0f0ee; z-index:200; display:none; flex-direction:column; overflow-y:auto; font-family:var(--font); }
+  .gestor-header { background:#1a1a18; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:10; box-shadow:0 2px 8px rgba(0,0,0,.35); }
+  .gestor-header h2 { color:#fff; font-size:15px; font-weight:700; letter-spacing:.3px; }
+  .gestor-header .g-sub { color:#aaa; font-size:11px; margin-top:2px; }
+  .gestor-sair { background:#CC0000; color:#fff; border:none; border-radius:6px; padding:7px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+  .gestor-body { padding:20px 16px; max-width:760px; margin:0 auto; width:100%; }
+  .gestor-card { background:#fff; border-radius:10px; box-shadow:0 1px 4px rgba(0,0,0,.10); padding:16px; margin-bottom:16px; }
+  .gestor-card h3 { font-size:13px; font-weight:700; color:#1a1a18; margin-bottom:12px; text-transform:uppercase; letter-spacing:.5px; }
+  .gestor-controls { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+  .gestor-controls .field label { color:#444; font-size:12px; font-weight:600; }
+  .gestor-controls input[type=month] { background:#f4f4f2; border:1px solid #ccc; color:#1a1a18; border-radius:6px; padding:8px 10px; font-size:13px; }
+  .gestor-controls .btn-carregar { background:#CC0000; color:#fff; border:none; border-radius:6px; padding:9px 20px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .gestor-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:10px; margin-bottom:16px; }
+  .g-stat { background:#fff; border-radius:10px; box-shadow:0 1px 4px rgba(0,0,0,.10); padding:12px; text-align:center; }
+  .g-stat .g-num { font-size:22px; font-weight:800; color:#1a1a18; }
+  .g-stat .g-lbl { font-size:10px; color:#777; text-transform:uppercase; letter-spacing:.4px; margin-top:2px; }
+  .g-stat.g-ok .g-num { color:#2e7d32; }
+  .g-stat.g-res .g-num { color:#e65100; }
+  .g-stat.g-nok .g-num { color:#CC0000; }
+  .g-stat.g-corr .g-num { color:#6a1a1a; }
+  .gestor-table-wrap { overflow-x:auto; }
+  .gestor-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .gestor-table thead tr { background:#1a1a18; }
+  .gestor-table th { color:#fff; padding:9px 10px; text-align:center; font-weight:600; white-space:nowrap; font-size:11px; letter-spacing:.3px; }
+  .gestor-table th:nth-child(2) { text-align:left; }
+  .gestor-table td { padding:8px 10px; border-bottom:1px solid #e8e8e6; text-align:center; color:#222; font-size:12px; }
+  .gestor-table td:nth-child(2) { text-align:left; font-weight:500; }
+  .gestor-table tr:hover td { background:#fafaf8; }
+  .gestor-table .sem-dados td { color:#aaa; font-style:italic; }
+  .gestor-export-btn { background:#CC0000; color:#fff; border:none; border-radius:8px; padding:12px; font-size:14px; font-weight:700; cursor:pointer; width:100%; margin-top:16px; letter-spacing:.3px; }
+
+  /* DOCA BLOQUEADA */
+  .doca-card.locked .doca-card-header { background: #f0f9eb; border-bottom-color: #c5e0a0; }
+  .locked-badge { display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; color:#3B6D11; background:#EAF3DE; border:1px solid #639922; border-radius:12px; padding:2px 7px; }
+  .confirm-btn { width:100%; margin-top:10px; padding:11px; background:#3B6D11; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; font-family:var(--font); cursor:pointer; letter-spacing:.2px; }
+  .confirm-btn:active { background:#2a5009; transform:scale(0.98); }
+  .doca-locked-info { background:#EAF3DE; border:1px solid #639922; border-radius:8px; padding:9px 12px; margin-top:8px; font-size:12px; color:#3B6D11; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <img class="logo-belcito" src="data:image/png;base64,__BELCITO_B64__" alt="Belcito" />
+  <div class="header-text">
+    <h1 id="header-title">Checklist Preventiva</h1>
+    <p id="header-subtitle">Selecione a unidade</p>
+    <span id="sync-status" style="font-size:10px;color:#888;display:block;margin-top:2px;"></span>
+  </div>
+  <img class="logo-cliente" id="client-logo" src="" alt="Cliente" />
+</div>
+
+<div class="container">
+
+  <button class="gestor-link" onclick="openGestorLogin()">🔒 Área do Gestor</button>
+
+  <div class="unit-card">
+    <label>Unidade</label>
+    <select id="unit-select" onchange="onUnitChange()"></select>
+  </div>
+
+  <div class="meta-card">
+    <div class="meta-grid">
+      <div class="field">
+        <label>Data</label>
+        <input type="date" id="data-global" />
+      </div>
+      <div class="field">
+        <label>Responsável</label>
+        <input type="text" id="resp-global" placeholder="Nome do técnico" />
+      </div>
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <label>Observação Geral da Visita</label>
+      <textarea id="obs-geral" placeholder="Anotações gerais da visita..." style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:var(--font);background:var(--surface-1);resize:none;min-height:58px;"></textarea>
+    </div>
+  </div>
+
+  <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+    <span>Docas</span>
+    <span id="docas-progress" style="font-weight:400;color:var(--text-muted);font-size:11px;letter-spacing:0;text-transform:none;"></span>
+  </div>
+  <div id="docas-container"></div>
+  <button class="add-doca-btn" onclick="openAddModal()">+ Adicionar doca</button>
+
+  <div class="summary">
+    <h3>Resumo geral</h3>
+    <div class="summary-grid">
+      <div class="scard scard-ok"><div class="num" id="s-ok">0</div><div class="lbl">Preventiva Ok</div></div>
+      <div class="scard scard-res"><div class="num" id="s-res">0</div><div class="lbl">Com Ressalvas</div></div>
+      <div class="scard scard-nok"><div class="num" id="s-nok">0</div><div class="lbl">Não Ok</div></div>
+      <div class="scard scard-na"><div class="num" id="s-na">0</div><div class="lbl">Não se Aplica</div></div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label"><span>Preenchimento</span><span id="progress-pct">0%</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="summary" style="margin-top:0.75rem;">
+    <h3>Corretivas abertas</h3>
+    <div id="corretivas-list"><p class="empty-corretivas">Nenhuma corretiva registrada</p></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" onclick="exportCSV()">⬇ Exportar TXT</button>
+    <button class="btn btn-primary" onclick="exportXLSX()">📊 Exportar XLSX</button>
+  </div>
+
+
+</div>
+
+<!-- GESTOR LOGIN MODAL -->
+<div class="modal-overlay" id="gestor-login-modal" style="display:none;">
+  <div class="modal">
+    <h3>Área do Gestor</h3>
+    <div class="field" style="margin-top:12px;">
+      <label>Senha</label>
+      <div style="position:relative;">
+        <input type="password" id="gestor-senha" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')gestorLogin()" style="width:100%;padding-right:40px;" />
+        <button type="button" onclick="const i=document.getElementById('gestor-senha');i.type=i.type==='password'?'text':'password'" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted);">👁</button>
+      </div>
+    </div>
+    <p id="gestor-erro" style="color:#CC0000;font-size:12px;margin-top:6px;min-height:16px;"></p>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn" onclick="closeGestorLogin()">Cancelar</button>
+      <button class="btn btn-primary" onclick="gestorLogin()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- GESTOR PANEL -->
+<div id="gestor-panel">
+  <div class="gestor-header">
+    <div>
+      <h2>Área do Gestor</h2>
+      <div class="g-sub">Checklist Preventiva — Belcito</div>
+    </div>
+    <button class="gestor-sair" onclick="fecharGestor()">✕ Sair</button>
+  </div>
+  <div class="gestor-body">
+
+    <div class="gestor-card">
+      <h3>Período</h3>
+      <div class="gestor-controls">
+        <div class="field" style="flex:1;min-width:160px;">
+          <label>Mês de referência</label><br>
+          <input type="month" id="gestor-mes" />
+        </div>
+        <button class="btn-carregar" onclick="gestorCarregar()">Carregar dados</button>
+      </div>
+    </div>
+
+    <div id="gestor-tabela-wrap" style="display:none;">
+      <div class="gestor-stats" id="gestor-stats"></div>
+
+      <div class="gestor-card">
+        <h3>Unidades</h3>
+        <div style="margin-bottom:10px;">
+          <select id="gestor-filtro-cliente" onchange="filtrarGestorTabela()" style="padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;background:#f4f4f2;color:#1a1a18;">
+            <option value="">Todos os clientes</option>
+            <option value="Shopee">Shopee</option>
+            <option value="Alcon">Alcon</option>
+          </select>
+        </div>
+        <div class="gestor-table-wrap">
+          <table class="gestor-table">
+            <thead>
+              <tr>
+                <th>Cliente</th><th>Unidade</th><th>Porta</th><th>Niv</th>
+                <th>✓ Ok</th><th>⚠ Ressalvas</th><th>✗ Não Ok</th><th>Corretivas</th>
+              </tr>
+            </thead>
+            <tbody id="gestor-table-body"></tbody>
+          </table>
+        </div>
+        <button class="gestor-export-btn" onclick="exportGestorXLSX()">📊 Exportar XLSX Consolidado</button>
+      <div class="gestor-card" id="gestor-bloqueadas-wrap" style="display:none;margin-top:16px;">
+        <h3>Docas Confirmadas 🔒</h3>
+        <div id="gestor-bloqueadas-list"></div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <h3>Adicionar doca</h3>
+    <div class="field">
+      <label>Número da doca</label>
+      <input type="text" id="modal-num" placeholder="Ex: 17" />
+    </div>
+    <div class="field">
+      <label>Modelo</label>
+      <input type="text" id="modal-modelo" placeholder="Ex: Porta Manual/Niveladora Eletro Hid." />
+    </div>
+    <label class="checkbox"><input type="checkbox" id="modal-niv" checked /> Possui niveladora</label>
+    <div class="modal-btns">
+      <button class="btn" onclick="closeAddModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmAddDoca()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<div id="foto-view" onclick="this.classList.remove('open')"><img id="foto-view-img" alt=""></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── LOGOS (base64) ──────────────────────────────────────────────────────────
+const LOGOS = {
+  belcito: document.querySelector('.logo-belcito').src,
+  shopee:  'data:image/png;base64,__SHOPEE_B64__',
+  alcon:   'data:image/png;base64,__ALCON_B64__',
+};
+
+// ── DOCA LIST BUILDERS ────────────────────────────────────────────────────────
+function range(a, b) { const r = []; for (let i = a; i <= b; i++) r.push(i); return r; }
+
+function buildSimoesFilho() {
+  const docas = [{ num: '17 S/N', modelo: 'Porta Manual / Rampa', niv: false }];
+  range(18, 36).forEach(n => docas.push({ num: String(n), modelo: 'Porta Manual/Niveladora Eletro Hid. (Marksell)', niv: true }));
+  range(50, 87).forEach(n => docas.push({ num: String(n), modelo: 'Porta Manual/Niveladora Eletro Hid. (Marksell)', niv: true }));
+  docas.push({ num: '88', modelo: 'Porta Manual', niv: false });
+  return docas;
+}
+
+function buildHidrolandia() {
+  const soPorta = [19, 20, 34, 35];
+  const docas = [];
+  range(1, 66).forEach(n => {
+    docas.push({ num: String(n), modelo: soPorta.includes(n) ? 'Só Porta' : 'Porta e Niv Elet/hid', niv: !soPorta.includes(n) });
+  });
+  docas.push({ num: '67', modelo: 'Portão Grande (sala manutenção)', niv: false });
+  docas.push({ num: '68', modelo: 'Portão Grande e Rampa', niv: false });
+  docas.push({ num: '69', modelo: 'Porta Vermelha e Rampa', niv: false });
+  return docas;
+}
+
+function buildAlconBarueri() {
+  return [
+    { num: '1', modelo: 'Porta motorizada e Niv eletro-hid.', niv: true },
+    { num: '2', modelo: 'Porta motorizada e Niv eletro-hid.', niv: true },
+  ];
+}
+
+function build_shopee_cravinhos() {
+  const docas = [{ num: '1', modelo: 'Rampa', niv: false }];
+  range(2, 25).forEach(n => docas.push({ num: String(n), modelo: 'Niv Manual', niv: true }));
+  range(26, 42).forEach(n => docas.push({ num: String(n), modelo: 'Niv Elet/hid', niv: true }));
+  docas.push({ num: '43', modelo: 'Rampa', niv: false });
+  range(44, 65).forEach(n => docas.push({ num: String(n), modelo: 'Niv Manual', niv: true }));
+  range(66, 81).forEach(n => docas.push({ num: String(n), modelo: 'Niv Elet/hid', niv: true }));
+  return docas;
+}
+
+function build_shopee_franco_rocha_fsp01() {
+  return [
+    { num: "E1", modelo: "Escada", niv: false },
+    { num: "1", modelo: "Niv Elet/hid (gerador)", niv: true },
+    { num: "2", modelo: "Niv Elet/hid", niv: true },
+    { num: "3", modelo: "Niv Elet/hid", niv: true },
+    { num: "4", modelo: "Niv Elet/hid", niv: true },
+    { num: "5", modelo: "Niv Elet/hid", niv: true },
+    { num: "6", modelo: "Niv Elet/hid", niv: true },
+    { num: "7", modelo: "Niv Elet/hid", niv: true },
+    { num: "8", modelo: "Niv Elet/hid", niv: true },
+    { num: "9", modelo: "Niv Elet/hid", niv: true },
+    { num: "10", modelo: "Niv Elet/hid", niv: true },
+    { num: "11", modelo: "Niv Elet/hid", niv: true },
+    { num: "12", modelo: "Niv Elet/hid", niv: true },
+    { num: "13", modelo: "Niv Elet/hid", niv: true },
+    { num: "14", modelo: "Niv Elet/hid", niv: true },
+    { num: "15", modelo: "Niv Elet/hid", niv: true },
+    { num: "16", modelo: "Niv Elet/hid", niv: true },
+    { num: "17", modelo: "Niv Elet/hid", niv: true },
+    { num: "18", modelo: "Niv Elet/hid", niv: true },
+    { num: "19", modelo: "Niv Elet/hid", niv: true },
+    { num: "20", modelo: "Niv Elet/hid", niv: true },
+    { num: "E3", modelo: "Escada", niv: false },
+    { num: "E5", modelo: "Escada", niv: false },
+    { num: "21", modelo: "Niv Elet/hid (gerador)", niv: true },
+    { num: "22", modelo: "Niv Elet/hid", niv: true },
+    { num: "23", modelo: "Niv Elet/hid", niv: true },
+    { num: "24", modelo: "Niv Elet/hid", niv: true },
+    { num: "25", modelo: "Niv Elet/hid", niv: true },
+    { num: "26", modelo: "Niv Elet/hid", niv: true },
+    { num: "27", modelo: "Niv Elet/hid", niv: true },
+    { num: "28", modelo: "Niv Elet/hid", niv: true },
+    { num: "29", modelo: "Niv Elet/hid", niv: true },
+    { num: "30", modelo: "Niv Elet/hid", niv: true },
+    { num: "31", modelo: "Niv Elet/hid", niv: true },
+    { num: "32", modelo: "Niv Elet/hid", niv: true },
+    { num: "33", modelo: "Niv Elet/hid", niv: true },
+    { num: "34", modelo: "Niv Elet/hid", niv: true },
+    { num: "35", modelo: "Niv Elet/hid", niv: true },
+    { num: "36", modelo: "Niv Elet/hid", niv: true },
+    { num: "37", modelo: "Niv Elet/hid", niv: true },
+    { num: "38", modelo: "Niv Elet/hid", niv: true },
+    { num: "39", modelo: "Niv Elet/hid", niv: true },
+    { num: "40", modelo: "Niv Elet/hid", niv: true },
+    { num: "41", modelo: "Niv Elet/hid", niv: true },
+    { num: "42", modelo: "Niv Elet/hid", niv: true },
+    { num: "43", modelo: "Niv Elet/hid", niv: true },
+    { num: "44", modelo: "Niv Elet/hid", niv: true },
+    { num: "45", modelo: "Niv Elet/hid", niv: true },
+    { num: "46", modelo: "Niv Elet/hid (gerador)", niv: true },
+    { num: "E7", modelo: "Rampa", niv: false },
+    { num: "47", modelo: "Niv Elet/hid", niv: true },
+    { num: "48", modelo: "Niv Elet/hid", niv: true },
+    { num: "49", modelo: "Niv Elet/hid", niv: true },
+    { num: "50", modelo: "Niv Elet/hid", niv: true },
+    { num: "51", modelo: "Niv Elet/hid", niv: true },
+    { num: "52", modelo: "Niv Elet/hid", niv: true },
+    { num: "E9", modelo: "Escada", niv: false },
+    { num: "53", modelo: "Niv Elet/hid (gerador)", niv: true },
+    { num: "54", modelo: "Niv Elet/hid", niv: true },
+    { num: "55", modelo: "Niv Elet/hid", niv: true },
+    { num: "56", modelo: "Niv Elet/hid", niv: true },
+    { num: "57", modelo: "Niv Elet/hid", niv: true },
+    { num: "58", modelo: "Niv Elet/hid", niv: true },
+    { num: "59", modelo: "Niv Elet/hid (caçamba)", niv: true },
+    { num: "60", modelo: "Niv Elet/hid (caçamba)", niv: true },
+    { num: "E10", modelo: "Escada", niv: false },
+    { num: "61", modelo: "Niv Elet/hid (gerador)", niv: true },
+    { num: "62", modelo: "Niv Elet/hid (gerador)", niv: true },
+    { num: "E4", modelo: "Rampa", niv: false },
+    { num: "63", modelo: "Niv Elet/hid", niv: true },
+    { num: "64", modelo: "Niv Elet/hid", niv: true },
+    { num: "65", modelo: "Niv Elet/hid", niv: true },
+    { num: "66", modelo: "Niv Elet/hid", niv: true },
+    { num: "67", modelo: "Niv Elet/hid", niv: true },
+    { num: "68", modelo: "Niv Elet/hid", niv: true },
+    { num: "69", modelo: "Niv Elet/hid", niv: true },
+    { num: "70", modelo: "Niv Elet/hid", niv: true },
+    { num: "71", modelo: "Niv Elet/hid", niv: true },
+    { num: "72", modelo: "Niv Elet/hid", niv: true },
+    { num: "73", modelo: "Niv Elet/hid", niv: true },
+    { num: "74", modelo: "Niv Elet/hid", niv: true },
+    { num: "75", modelo: "Niv Elet/hid", niv: true },
+    { num: "76", modelo: "Niv Elet/hid", niv: true },
+    { num: "77", modelo: "Niv Elet/hid", niv: true },
+    { num: "78", modelo: "Niv Elet/hid", niv: true },
+    { num: "79", modelo: "Niv Elet/hid", niv: true },
+    { num: "80", modelo: "Niv Elet/hid", niv: true },
+    { num: "81", modelo: "Niv Elet/hid", niv: true },
+    { num: "82", modelo: "Niv Elet/hid", niv: true },
+    { num: "83", modelo: "Niv Elet/hid", niv: true },
+    { num: "E2", modelo: "Escada (acesso adm)", niv: false },
+    { num: "E6", modelo: "Escada", niv: false },
+    { num: "84", modelo: "Niv Elet/hid (gerador)", niv: true },
+    { num: "85", modelo: "Niv Elet/hid", niv: true },
+    { num: "86", modelo: "Niv Elet/hid", niv: true },
+    { num: "87", modelo: "Niv Elet/hid", niv: true },
+    { num: "88", modelo: "Niv Elet/hid", niv: true },
+    { num: "89", modelo: "Niv Elet/hid", niv: true },
+    { num: "90", modelo: "Niv Elet/hid", niv: true },
+    { num: "91", modelo: "Niv Elet/hid", niv: true },
+    { num: "92", modelo: "Niv Elet/hid", niv: true },
+    { num: "93", modelo: "Niv Elet/hid", niv: true },
+    { num: "94", modelo: "Niv Elet/hid", niv: true },
+    { num: "95", modelo: "Niv Elet/hid", niv: true },
+    { num: "96", modelo: "Niv Elet/hid", niv: true },
+    { num: "97", modelo: "Niv Elet/hid", niv: true },
+    { num: "98", modelo: "Niv Elet/hid", niv: true },
+    { num: "99", modelo: "Niv Elet/hid", niv: true },
+    { num: "100", modelo: "Niv Elet/hid", niv: true },
+    { num: "101", modelo: "Niv Elet/hid", niv: true },
+    { num: "102", modelo: "Niv Elet/hid", niv: true },
+    { num: "103", modelo: "Niv Elet/hid", niv: true },
+    { num: "104", modelo: "Niv Elet/hid", niv: true },
+    { num: "105", modelo: "Niv Elet/hid", niv: true },
+    { num: "106", modelo: "Niv Elet/hid", niv: true },
+    { num: "107", modelo: "Niv Elet/hid", niv: true },
+    { num: "108", modelo: "Niv Elet/hid", niv: true },
+    { num: "109", modelo: "Niv Elet/hid", niv: true },
+    { num: "110", modelo: "Niv Elet/hid", niv: true },
+    { num: "E8", modelo: "Escada (acesso adm)", niv: false },
+    { num: "111", modelo: "Niv Elet/hid", niv: true },
+    { num: "112", modelo: "Niv Elet/hid", niv: true },
+    { num: "113", modelo: "Niv Elet/hid", niv: true },
+    { num: "114", modelo: "Niv Elet/hid", niv: true },
+    { num: "115", modelo: "Niv Elet/hid", niv: true },
+    { num: "116", modelo: "Niv Elet/hid", niv: true }
+  ];
+}
+
+function build_shopee_franco_rocha_fsp02() {
+  const M = 'Niv Elet/hid';
+  const E = (num, modelo) => ({ num, modelo, niv: false });
+  const docas = [E('C1 (1)', 'Rampa')];
+  range(1, 35).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push(E('C2 (35)', 'Escada'), E('C3 (36)', 'Escada'));
+  range(36, 70).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push(E('C6 (70)', 'Escada'), E('C5 (71)', 'Escada'));
+  range(71, 90).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push(E('C5 (90)', 'Rampa'));
+  range(91, 109).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push(E('C5 (109)', 'Escada'), E('C6 (110)', 'Escada'));
+  range(110, 129).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push(E('C7 (129)', 'Rampa'), E('C1 (130)', 'Rampa'));
+  range(130, 164).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push(E('C2 (164)', 'Escada'), E('C3 (165)', 'Escada'));
+  range(165, 198).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push(E('C4 (198)', 'Escada'));
+  return docas;
+}
+
+function build_shopee_jaboatao_fpe1() {
+  const M  = 'Porta + Niveladora Eletro/hidr';
+  const Ml = 'porta + Niveladora Eletro/hidr'; // caixa original das docas 103-118
+  const docas = [];
+  range(1, 4).forEach(n => docas.push({ num: String(n), modelo: 'Porta', niv: false }));
+  range(5, 78).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push({ num: '79', modelo: 'Porta / Rampa', niv: false },
+              { num: '80', modelo: 'Porta / Rampa', niv: false });
+  range(81, 102).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  range(103, 118).forEach(n => docas.push({ num: String(n), modelo: Ml, niv: true }));
+  range(119, 171).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  return docas;
+}
+
+function build_shopee_santana_sp02() {
+  return [
+    { num: "1", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "2", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "3", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "4", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "5", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "6", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "7", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "8", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "9", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "10", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "11", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "12", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "13", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "14", modelo: "Manual-Hidr Avançada", niv: true },
+    { num: "15", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "16", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "17", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "18", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "19", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "20", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "21", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "22", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "23", modelo: "Manual-Hidr Avançada", niv: true },
+    { num: "24", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "25", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "26", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "27", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "28", modelo: "Manual-Hidr Avançada", niv: true },
+    { num: "29", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "30", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "31", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "32", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "33", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "34", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "35", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "36", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "37", modelo: "Manual-Hidr Avançada", niv: true },
+    { num: "38", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "39", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "40", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "41", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "42", modelo: "Manual-Hidr Avançada", niv: true },
+    { num: "43", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "44", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "45", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "46", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "47", modelo: "Manual-Hidr Avançada", niv: true },
+    { num: "48", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "49", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "50", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "51", modelo: "Manual-hidr embutida", niv: true },
+    { num: "94", modelo: "Rampa", niv: false },
+    { num: "95", modelo: "Rampa", niv: false },
+    { num: "96", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "97", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "98", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "99", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "100", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "101", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "102", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "103", modelo: "Sem niveladora", niv: false },
+    { num: "104", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "105", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "106", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "107", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "108", modelo: "manual-hidr Embutida", niv: true },
+    { num: "109", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "110", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "111", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "112", modelo: "Sem niveladora", niv: false },
+    { num: "113", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "114", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "115", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "116", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "117", modelo: "Manual-Hidr Avançada", niv: true },
+    { num: "118", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "119", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "120", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "121", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "122", modelo: "Manual-Hidr Avançada", niv: true },
+    { num: "123", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "124", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "125", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "126", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "127", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "128", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "129", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "130", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "131", modelo: "Manual-Hidr Avançada", niv: true },
+    { num: "132", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "133", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "134", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "135", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "136", modelo: "Manual-Hidr Avançada", niv: true },
+    { num: "137", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "138", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "139", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "140", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "141", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "142", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "143", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "144", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "145", modelo: "Manual-Hidr Avançada", niv: true },
+    { num: "146", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "147", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "148", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "149", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "150", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "151", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "152", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "153", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "154", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "155", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "156", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "157", modelo: "Manual-Hidr Embutida", niv: true },
+    { num: "158", modelo: "Manual-Hidr Embutida", niv: true }
+  ];
+}
+
+function build_shopee_betim_mg02() {
+  return [
+    { num: "1", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "2", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "3", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "4", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "5", modelo: "Porta Seccionada / Niv EletroHidrValcom", niv: true },
+    { num: "6", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "7", modelo: "Porta Seccionada / Niv EletroHidrValcom", niv: true },
+    { num: "8", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "9", modelo: "Porta Seccionada / Niv EletroHidrValcom", niv: true },
+    { num: "10", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "11", modelo: "Porta Seccionada / Niv EletroHidrValcom", niv: true },
+    { num: "12", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "13", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "14", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "15", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "16", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "17", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "18", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "19", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "20", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "21", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "22", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "23", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "24", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "25", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "26", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "27", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "28", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "29", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "30", modelo: "Porta Seccionada / Niv EletroHidrValcom", niv: true },
+    { num: "31", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "32", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "33", modelo: "Porta Seccionada / Niv EletroHidrValcom", niv: true },
+    { num: "34", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "35", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "36", modelo: "Porta Seccionada / Niv EletroHidrValcom", niv: true },
+    { num: "37", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "38", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "39", modelo: "Porta Seccionada / Niv EletroHidrValcom", niv: true },
+    { num: "40", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "41", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "42", modelo: "Porta Seccionada / Niv EletroHidrValcom", niv: true },
+    { num: "43", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "44", modelo: "Porta Guilhotina / Rampa Alvenaria", niv: false },
+    { num: "45", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "46", modelo: "Porta Seccionada / Niv EletroHidrValcom", niv: true },
+    { num: "47", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "48", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "49", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "50", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "51", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "52", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "53", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "54", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "55", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "56", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "57", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "58", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "59", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "60", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "61", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "62", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "63", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "64", modelo: "Porta Guilhotina / Rampa Metálica", niv: false },
+    { num: "65", modelo: "Porta Seccionada / Niv EletroHidrValcom", niv: true },
+    { num: "66", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "67", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "68", modelo: "Porta Seccionada / Niv EletroHidrValcom", niv: true },
+    { num: "69", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "70", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "71", modelo: "Porta Seccionada / Niv EletroHidrValcom", niv: true },
+    { num: "72", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "73", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "74", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "75", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "76", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "77", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "78", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "79", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "80", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "81", modelo: "Porta Seccionada / Niv EletroHidrValcom", niv: true },
+    { num: "82", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "83", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "84", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "85", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "86", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "87", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "88", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "89", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "90", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "91", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "92", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "93", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "94", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "Rampa 95", modelo: "Porta Sec / Rampa Alvenaria", niv: false },
+    { num: "96", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "97", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "98", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "99", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true },
+    { num: "100", modelo: "Porta Guilhotina / Niv EletroHidrValcom", niv: true }
+  ];
+}
+
+function build_shopee_campina_grande_sul_pr01() {
+  const H = 'hidraulica';
+  const docas = [
+    { num: '25', modelo: 'portaria/rampa', niv: false },
+    { num: '26', modelo: 'desativada',     niv: false },
+    { num: '27', modelo: 'desativada',     niv: false },
+    { num: '28', modelo: 'sem niveladora', niv: false },
+  ];
+  range(29, 47).forEach(n => docas.push({ num: String(n), modelo: H, niv: true }));
+  docas.push({ num: '48', modelo: 'rampa', niv: false });
+  range(72, 80).forEach(n => docas.push({ num: String(n), modelo: H, niv: true }));
+  docas.push({ num: '81', modelo: 'niv/hidrauli', niv: true }); // grafia original
+  range(82, 95).forEach(n => docas.push({ num: String(n), modelo: H, niv: true }));
+  docas.push({ num: '96', modelo: 'rampa', niv: false });
+  return docas;
+}
+
+function build_shopee_contagem_mg01() {
+  return range(1, 48).map(n => ({ num: String(n), modelo: 'Não informado', niv: false }));
+}
+
+function build_shopee_cumbica_sp25() {
+  return [
+    { num: "Rampa 58", modelo: "Porta Motorizada + Rampa", niv: false },
+    { num: "59", modelo: "Porta e Niv.", niv: true },
+    { num: "60", modelo: "Porta e Niv.", niv: true },
+    { num: "61", modelo: "Porta e Niv.", niv: true },
+    { num: "62", modelo: "Porta", niv: false },
+    { num: "63", modelo: "Porta", niv: false },
+    { num: "64", modelo: "Porta e Niv.", niv: true },
+    { num: "65", modelo: "Porta e Niv.", niv: true },
+    { num: "66", modelo: "Porta e Niv.", niv: true },
+    { num: "67", modelo: "Porta", niv: false },
+    { num: "68", modelo: "Porta", niv: false },
+    { num: "69", modelo: "Porta e Niv.", niv: true },
+    { num: "70", modelo: "Porta e Niv.", niv: true },
+    { num: "71", modelo: "Porta e Niv.", niv: true },
+    { num: "74", modelo: "Porta e Niv.", niv: true },
+    { num: "75", modelo: "Porta e Niv.", niv: true },
+    { num: "76", modelo: "Porta e Niv.", niv: true },
+    { num: "78", modelo: "Porta", niv: false },
+    { num: "79", modelo: "Porta e Niv.", niv: true },
+    { num: "80", modelo: "Porta e Niv.", niv: true },
+    { num: "81", modelo: "Porta e Niv.", niv: true }
+  ];
+}
+
+function build_shopee_duque_caxias_rj2() {
+  const M = 'Porta bascul man / Niv Eletromecânica';
+  const p = num => ({ num, modelo: M, niv: true });
+  const E = num => ({ num, modelo: 'Escada', niv: false });
+  const docas = [];
+  range(1, 11).forEach(n => docas.push(p(String(n))));
+  docas.push(E('11 A'), p('11 B'));
+  range(12, 27).forEach(n => docas.push(p(String(n))));
+  docas.push(E('27A'), p('27B'));
+  range(28, 43).forEach(n => docas.push(p(String(n))));
+  docas.push(p('43A'), p('43B'));
+  range(44, 47).forEach(n => docas.push(p(String(n))));
+  docas.push(E('48'));
+  range(74, 103).forEach(n => docas.push(p(String(n))));
+  docas.push(p('103A'), p('103B'));
+  range(104, 107).forEach(n => docas.push(p(String(n))));
+  docas.push(E('108'));
+  range(109, 119).forEach(n => docas.push(p(String(n))));
+  docas.push(p('119A'), p('119B'));
+  range(120, 135).forEach(n => docas.push(p(String(n))));
+  docas.push(p('135B'));
+  range(136, 139).forEach(n => docas.push(p(String(n))));
+  docas.push({ num: '140', modelo: 'Porta bascul man / Sem Niveladora', niv: false });
+  range(141, 144).forEach(n => docas.push(p(String(n))));
+  docas.push({ num: '145', modelo: 'Porta bascul man / Sem Niveladora', niv: false });
+  return docas;
+}
+
+function build_shopee_goiania_go02() {
+  const MN = 'Porta Seccional e Niv. Emb Eletr';
+  const MS = 'Porta Seccional';
+  const docas = [];
+  range(1, 5).forEach(n => docas.push({ num: String(n), modelo: MS, niv: false }));
+  range(6, 39).forEach(n => docas.push({ num: String(n), modelo: MN, niv: true }));
+  docas.push({ num: '40', modelo: MS, niv: false });
+  range(57, 59).forEach(n => docas.push({ num: String(n), modelo: MS, niv: false }));
+  docas.push({ num: '60', modelo: MN, niv: true });
+  docas.push({ num: '61', modelo: MS, niv: false });
+  range(62, 105).forEach(n => docas.push({ num: String(n), modelo: MN, niv: true }));
+  docas.push({ num: '106', modelo: 'Só porta', niv: false });
+  return docas;
+}
+
+function build_shopee_gravatai_rs2() {
+  const docas = [{ num: 'Rampa 1', modelo: 'Acesso de pessoas', niv: false }];
+  range(2, 64).forEach(n => docas.push({ num: String(n), modelo: 'Eletro-hidr', niv: true }));
+  return docas;
+}
+
+function build_shopee_guarulhos_sp6() {
+  return [
+    { num: "1", modelo: "Niv e porta", niv: true },
+    { num: "2", modelo: "Niv e porta", niv: true },
+    { num: "3", modelo: "Niv e porta", niv: true },
+    { num: "4", modelo: "Niv e porta", niv: true },
+    { num: "5", modelo: "Niv e porta", niv: true },
+    { num: "6", modelo: "Niv e porta", niv: true },
+    { num: "7", modelo: "Niv e porta", niv: true },
+    { num: "Rampa 6", modelo: "Rampa Modulo 16", niv: false },
+    { num: "Rampa 7", modelo: "Acesso Func Modulo 15", niv: false },
+    { num: "8", modelo: "Niv e porta", niv: true },
+    { num: "Rampa 9", modelo: "Doca + Rampa (metalica)", niv: false },
+    { num: "10", modelo: "Niv e porta", niv: true },
+    { num: "11", modelo: "Niv e porta", niv: true },
+    { num: "12", modelo: "Niv e porta", niv: true },
+    { num: "13", modelo: "Niv e porta", niv: true },
+    { num: "14", modelo: "Niv e porta", niv: true },
+    { num: "15", modelo: "Niv e porta", niv: true },
+    { num: "16", modelo: "Niv e porta", niv: true },
+    { num: "17", modelo: "Niv e porta", niv: true },
+    { num: "18", modelo: "Niv e porta", niv: true },
+    { num: "19", modelo: "Niv e porta", niv: true },
+    { num: "20", modelo: "Niv e porta", niv: true },
+    { num: "21", modelo: "Niv e porta", niv: true },
+    { num: "22", modelo: "Niv e porta", niv: true },
+    { num: "Rampa 22", modelo: "Rampa Modulo 14", niv: false },
+    { num: "Rampa 23", modelo: "Rampa Modulo 13", niv: false },
+    { num: "23", modelo: "Niv e porta", niv: true },
+    { num: "24", modelo: "Niv e porta", niv: true },
+    { num: "25", modelo: "Niv e porta", niv: true },
+    { num: "26", modelo: "Niv e porta", niv: true },
+    { num: "27", modelo: "Niv e porta", niv: true },
+    { num: "28", modelo: "Niv e porta", niv: true },
+    { num: "29", modelo: "Niv e porta", niv: true },
+    { num: "30", modelo: "Niv e porta", niv: true },
+    { num: "31", modelo: "Niv e porta", niv: true },
+    { num: "32", modelo: "Niv e porta", niv: true },
+    { num: "33", modelo: "Niv e porta", niv: true },
+    { num: "34", modelo: "Niv e porta", niv: true },
+    { num: "35", modelo: "Niv e porta", niv: true },
+    { num: "36", modelo: "Niv e porta", niv: true },
+    { num: "37", modelo: "Niv e porta", niv: true },
+    { num: "38", modelo: "Niv e porta", niv: true },
+    { num: "Rampa 38", modelo: "Rampa Modulo 12", niv: false },
+    { num: "Rampa 39", modelo: "Rampa Modulo 11", niv: false },
+    { num: "39", modelo: "Niv e porta", niv: true },
+    { num: "40", modelo: "Niv e porta", niv: true },
+    { num: "41", modelo: "Niv e porta", niv: true },
+    { num: "42", modelo: "Niv e porta", niv: true },
+    { num: "43", modelo: "Niv e porta", niv: true },
+    { num: "44", modelo: "Niv e porta", niv: true },
+    { num: "45", modelo: "Niv e porta", niv: true },
+    { num: "46", modelo: "Niv e porta", niv: true },
+    { num: "Rampa 75", modelo: "Doca + Rampa (metalica)", niv: false },
+    { num: "76", modelo: "Niv e porta", niv: true },
+    { num: "77", modelo: "Niv e porta", niv: true },
+    { num: "78", modelo: "Niv e porta", niv: true },
+    { num: "79", modelo: "Niv e porta", niv: true },
+    { num: "80", modelo: "Niv e porta", niv: true },
+    { num: "81", modelo: "Niv e porta", niv: true },
+    { num: "82", modelo: "Niv e porta", niv: true },
+    { num: "Rampa 82", modelo: "Rampa Modulo 3", niv: false },
+    { num: "Rampa 83", modelo: "Rampa Modulo 4", niv: false },
+    { num: "83", modelo: "Niv e porta", niv: true },
+    { num: "84", modelo: "Niv e porta", niv: true },
+    { num: "85", modelo: "Niv e porta", niv: true },
+    { num: "86", modelo: "Niv e porta", niv: true },
+    { num: "87", modelo: "Niv e porta", niv: true },
+    { num: "88", modelo: "Niv e porta", niv: true },
+    { num: "89", modelo: "Niv e porta", niv: true },
+    { num: "90", modelo: "Niv e porta", niv: true },
+    { num: "91", modelo: "Niv e porta", niv: true },
+    { num: "92", modelo: "Niv e porta", niv: true },
+    { num: "93", modelo: "Niv e porta", niv: true },
+    { num: "94", modelo: "Niv e porta", niv: true },
+    { num: "95", modelo: "Niv e porta", niv: true },
+    { num: "96", modelo: "Niv e porta", niv: true },
+    { num: "97", modelo: "Niv e porta", niv: true },
+    { num: "98", modelo: "Niv e porta", niv: true },
+    { num: "Rampa 98", modelo: "Rampa Modulo 5", niv: false },
+    { num: "Rampa 99", modelo: "Rampa Modulo 6", niv: false },
+    { num: "99", modelo: "Niv e porta", niv: true },
+    { num: "100", modelo: "Niv e porta", niv: true },
+    { num: "101", modelo: "Niv e porta", niv: true },
+    { num: "102", modelo: "Niv e porta", niv: true },
+    { num: "103", modelo: "Niv e porta", niv: true },
+    { num: "104", modelo: "Niv e porta", niv: true },
+    { num: "105", modelo: "Niv e porta", niv: true },
+    { num: "106", modelo: "Niv e porta", niv: true }
+  ];
+}
+
+function build_shopee_itaitinga_ce() {
+  const M = 'Porta + Niveladora Eletro/hidr';
+  const R = 'Porta + rampa';
+  const docas = [{ num: '1', modelo: R, niv: false }];
+  range(2, 7).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push({ num: '8', modelo: R, niv: false });
+  range(9, 34).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push({ num: '35', modelo: R, niv: false });
+  range(101, 127).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push({ num: '128', modelo: R, niv: false });
+  return docas;
+}
+
+function build_shopee_itajai_sc01() {
+  const M = 'Porta Sec / Nivelad Eletro Hid';
+  const docas = [];
+  range(215, 217).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push({ num: '218', modelo: 'Porta Sec / Acesso', niv: false });
+  range(219, 234).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push({ num: '235', modelo: 'Porta Sec / Escritório', niv: false });
+  range(236, 241).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push({ num: '242', modelo: 'Porta + Rampa', niv: false });
+  return docas;
+}
+
+function build_shopee_louveira_sp7() {
+  return [
+    { num: "39", modelo: "Niv Elet/hid", niv: true },
+    { num: "40", modelo: "Niv Elet/hid", niv: true },
+    { num: "41", modelo: "Niv Elet/hid", niv: true },
+    { num: "42", modelo: "Niv Elet/hid", niv: true },
+    { num: "43", modelo: "Niv Elet/hid", niv: true },
+    { num: "44", modelo: "Niv Elet/hid", niv: true },
+    { num: "45", modelo: "Niv Elet/hid", niv: true },
+    { num: "Rampa 45", modelo: "Rampa", niv: false },
+    { num: "Rampa 46", modelo: "Rampa", niv: false },
+    { num: "46", modelo: "Niv Elet/hid", niv: true },
+    { num: "47", modelo: "Niv Elet/hid", niv: true },
+    { num: "48", modelo: "Niv Elet/hid", niv: true },
+    { num: "49", modelo: "Niv Elet/hid", niv: true },
+    { num: "50", modelo: "Niv Elet/hid", niv: true },
+    { num: "51", modelo: "Niv Elet/hid", niv: true },
+    { num: "52", modelo: "Niv Elet/hid", niv: true },
+    { num: "53", modelo: "Niv Elet/hid", niv: true },
+    { num: "54", modelo: "Niv Elet/hid", niv: true },
+    { num: "55", modelo: "Niv Elet/hid", niv: true },
+    { num: "56", modelo: "Niv Elet/hid", niv: true },
+    { num: "Rampa 56", modelo: "Rampa", niv: false },
+    { num: "Rampa 87", modelo: "Rampa", niv: false },
+    { num: "87", modelo: "Niv Elet/hid", niv: true },
+    { num: "88", modelo: "Niv Elet/hid", niv: true },
+    { num: "89", modelo: "Niv Elet/hid", niv: true },
+    { num: "90", modelo: "Niv Elet/hid", niv: true },
+    { num: "91", modelo: "Niv Elet/hid", niv: true },
+    { num: "92", modelo: "Acesso", niv: false },
+    { num: "93", modelo: "Acesso", niv: false },
+    { num: "94", modelo: "Niv Elet/hid", niv: true },
+    { num: "95", modelo: "Niv Elet/hid", niv: true },
+    { num: "96", modelo: "Niv Elet/hid", niv: true },
+    { num: "97", modelo: "Niv Elet/hid", niv: true },
+    { num: "98", modelo: "Niv Elet/hid", niv: true },
+    { num: "99", modelo: "Niv Elet/hid", niv: true },
+    { num: "100", modelo: "Niv Elet/hid", niv: true },
+    { num: "Rampa 100", modelo: "Rampa", niv: false },
+    { num: "Rampa 101", modelo: "Rampa", niv: false },
+    { num: "101", modelo: "Niv Elet/hid", niv: true },
+    { num: "102", modelo: "Niv Elet/hid", niv: true },
+    { num: "103", modelo: "Niv Elet/hid", niv: true },
+    { num: "104", modelo: "Niv Elet/hid", niv: true },
+    { num: "105", modelo: "Niv Elet/hid", niv: true },
+    { num: "106", modelo: "Niv Elet/hid", niv: true },
+    { num: "107", modelo: "Niv Elet/hid", niv: true },
+    { num: "108", modelo: "Niv Elet/hid", niv: true },
+    { num: "109", modelo: "Niv Elet/hid", niv: true },
+    { num: "110", modelo: "Niv Elet/hid", niv: true },
+    { num: "111", modelo: "Niv Elet/hid", niv: true },
+    { num: "112", modelo: "Niv Elet/hid", niv: true },
+    { num: "Rampa 112", modelo: "Rampa", niv: false }
+  ];
+}
+
+function build_shopee_sao_bernardo_sp8() {
+  const M = 'Porta Seccional/Niveladora Eletro-hidraulica';
+  const R = 'Rampa de acesso veículos';
+  const docas = [];
+  range(1, 59).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push({ num: '60', modelo: R, niv: false }, { num: '61', modelo: R, niv: false });
+  range(62, 67).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  docas.push({ num: '68', modelo: R, niv: false });
+  docas.push({ num: '69', modelo: M, niv: true });
+  docas.push({ num: '70', modelo: R, niv: false });
+  range(71, 125).forEach(n => docas.push({ num: String(n), modelo: M, niv: true }));
+  return docas;
+}
+
+function build_shopee_sao_joao_meriti_rj1() {
+  return [
+    { num: "1", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "2", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "3", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "4", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "5", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "6", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "7", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "8", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "9", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "10", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "11", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "12", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "13", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "14", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "15", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "16", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "17", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "18", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "19", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "20", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "21", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "22", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "23", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "24", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "25", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "26", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "27", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "110", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "111", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "112", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "113", modelo: "Porta deslizante vertical manual / Rampa lateral", niv: false },
+    { num: "114", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "115", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "116", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "117", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "118", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "119", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "120", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "121", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "122", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "123", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "124", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "125", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "126", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "127", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "128", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "129", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "130", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "131", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "132", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "133", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "134", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true },
+    { num: "135", modelo: "Porta deslizante vertical manual / Niv ausente", niv: false },
+    { num: "136", modelo: "Porta deslizante vertical manual / Niveladora manual", niv: true }
+  ];
+}
+
+const UNITS = {
+  shopee_cravinhos: { cliente: "Shopee", unidade: "Cravinhos SP05", logo: "shopee", docas: build_shopee_cravinhos() },
+  shopee_franco_rocha_fsp01: { cliente: "Shopee", unidade: "Franco da Rocha FSP01", logo: "shopee", docas: build_shopee_franco_rocha_fsp01() },
+  shopee_franco_rocha_fsp02: { cliente: "Shopee", unidade: "Franco da Rocha FSP02", logo: "shopee", docas: build_shopee_franco_rocha_fsp02() },
+  shopee_jaboatao_fpe1: { cliente: "Shopee", unidade: "Jaboatão FPE1", logo: "shopee", docas: build_shopee_jaboatao_fpe1() },
+  shopee_santana_sp02: { cliente: "Shopee", unidade: "Santana SP02", logo: "shopee", docas: build_shopee_santana_sp02() },
+  shopee_betim_mg02: { cliente: "Shopee", unidade: "Betim MG02", logo: "shopee", docas: build_shopee_betim_mg02() },
+  shopee_campina_grande_sul_pr01: { cliente: "Shopee", unidade: "Campina Grande do Sul PR01", logo: "shopee", docas: build_shopee_campina_grande_sul_pr01() },
+  shopee_contagem_mg01: { cliente: "Shopee", unidade: "Contagem MG01", logo: "shopee", docas: build_shopee_contagem_mg01() },
+  shopee_cumbica_sp25: { cliente: "Shopee", unidade: "Cumbica SP25", logo: "shopee", docas: build_shopee_cumbica_sp25() },
+  shopee_duque_caxias_rj2: { cliente: "Shopee", unidade: "Duque de Caxias RJ2", logo: "shopee", docas: build_shopee_duque_caxias_rj2() },
+  shopee_goiania_go02: { cliente: "Shopee", unidade: "Goiânia GO02", logo: "shopee", docas: build_shopee_goiania_go02() },
+  shopee_gravatai_rs2: { cliente: "Shopee", unidade: "Gravataí RS2", logo: "shopee", docas: build_shopee_gravatai_rs2() },
+  shopee_guarulhos_sp6: { cliente: "Shopee", unidade: "Guarulhos SP6", logo: "shopee", docas: build_shopee_guarulhos_sp6() },
+  shopee_itaitinga_ce: { cliente: "Shopee", unidade: "Itaitinga CE", logo: "shopee", docas: build_shopee_itaitinga_ce() },
+  shopee_itajai_sc01: { cliente: "Shopee", unidade: "Itajaí SC01", logo: "shopee", docas: build_shopee_itajai_sc01() },
+  shopee_louveira_sp7: { cliente: "Shopee", unidade: "Louveira SP07", logo: "shopee", docas: build_shopee_louveira_sp7() },
+  shopee_sao_bernardo_sp8: { cliente: "Shopee", unidade: "São Bernardo do Campo SP08", logo: "shopee", docas: build_shopee_sao_bernardo_sp8() },
+  shopee_sao_joao_meriti_rj1: { cliente: "Shopee", unidade: "São João de Meriti RJ01", logo: "shopee", docas: build_shopee_sao_joao_meriti_rj1() },
+  shopee_simoes_filho: { cliente: 'Shopee', unidade: 'Simões Filho BA01', logo: 'shopee', docas: buildSimoesFilho() },
+  shopee_hidrolandia:  { cliente: 'Shopee', unidade: 'Hidrolândia FBS GO1', logo: 'shopee', docas: buildHidrolandia() },
+  alcon_barueri:       { cliente: 'Alcon',  unidade: 'Barueri', logo: 'alcon', docas: buildAlconBarueri() },
+};
+
+const STATUS_INFO = {
+  ok:      { label: 'Preventiva Ok', cls: 'active-ok',       pill: 'pill-ok',      desc: 'Equipamento revisado e funcionando normalmente.' },
+  ressalva:{ label: 'Com Ressalvas', cls: 'active-ressalva',  pill: 'pill-ressalva',desc: 'Equipamento funcionando, porém com observação a ser corrigida.' },
+  naook:   { label: 'Não Ok',        cls: 'active-naook',     pill: 'pill-naook',   desc: 'Equipamento com falha. Deve-se informar o motivo.' },
+  naoapl:  { label: 'Não se Aplica', cls: 'active-naoapl',    pill: 'pill-naoapl',  desc: 'Item não existente nesta doca.' },
+};
+const SL = { ok:'Preventiva Ok', ressalva:'Com Ressalvas', naook:'Não Ok', naoapl:'Não se Aplica', '':'Não preenchido' };
+const fmtDate = s => s ? s.split('-').reverse().join('/') : '';
+
+let currentUnitKey = 'shopee_simoes_filho';
+let state = [];
+let nextId = 1;
+
+// ── FIREBASE ──────────────────────────────────────────────────────────────────
+firebase.initializeApp({
+  apiKey: "AIzaSyDRucfu_EmrsAUQJ9pNLUMmEc1HOsinYI8",
+  authDomain: "checklist-de-preventiva.firebaseapp.com",
+  projectId: "checklist-de-preventiva",
+  storageBucket: "checklist-de-preventiva.firebasestorage.app",
+  messagingSenderId: "488059283386",
+  appId: "1:488059283386:web:e27e1a28dc8c11fd9a5f83"
+});
+const db = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true }).catch(e => console.warn('Persistência offline indisponível:', e.code));
+let unsubSnapshot = null;
+let unsubFotos = null;
+let fotos = {};
+const MAX_FOTOS = 3;
+let saveTimer = null;
+let fbReady = false;
+let justSaved = false;
+
+// ── HELPERS DE MÊS ───────────────────────────────────────────────────────────
+function monthKey(offset = 0) {
+  const d = new Date();
+  d.setDate(1); d.setMonth(d.getMonth() + offset);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function buildFreshState(key, carryOver = []) {
+  const u = UNITS[key];
+  return u.docas.map(d => {
+    const prev = carryOver.find(c => c.num === d.num);
+    const openP = prev && !prev.portaoAtend && (prev.portao === 'ressalva' || prev.portao === 'naook');
+    const openN = prev && !prev.nivelAtend  && (prev.nivel  === 'ressalva' || prev.nivel  === 'naook');
+    return {
+      id: nextId++, num: d.num, modelo: d.modelo, temNiveladora: d.niv,
+      portao: openP ? prev.portao : '', portaoObs: openP ? (prev.portaoObs||'') : '',
+      portaoAtend: '', portaoMotivo: '',
+      nivel: d.niv ? (openN ? prev.nivel : '') : 'naoapl',
+      nivelObs: openN ? (prev.nivelObs||'') : '', nivelAtend: '', nivelMotivo: '',
+      data: '', resp: '', dataManual: false, respManual: false, open: false, locked: false,
+    };
+  });
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+  const sel = document.getElementById('unit-select');
+  Object.keys(UNITS).forEach(key => {
+    const u = UNITS[key];
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = u.cliente + ' — ' + u.unidade;
+    sel.appendChild(opt);
+  });
+  sel.value = currentUnitKey;
+
+  document.getElementById('data-global').addEventListener('change', function() {
+    const val = this.value;
+    state.forEach(d => { if (!d.dataManual) d.data = val; });
+    scheduleSave();
+  });
+  document.getElementById('resp-global').addEventListener('input', function() {
+    const val = this.value;
+    state.forEach(d => { if (!d.respManual) d.resp = val; });
+    scheduleSave();
+  });
+  document.getElementById('obs-geral').addEventListener('input', scheduleSave);
+
+  setSyncStatus('Conectando...');
+  // onAuthStateChanged reaproveita a sessão anônima já persistida localmente,
+  // então funciona mesmo sem rede depois do primeiro login. Só faz login novo
+  // se realmente não houver sessão salva.
+  firebase.auth().onAuthStateChanged(user => {
+    if (user) { fbReady = true; loadUnit(currentUnitKey); }
+  });
+  if (!firebase.auth().currentUser) {
+    firebase.auth().signInAnonymously()
+      .catch(e => { console.error('Auth error:', e); setSyncStatus('Erro de conexão'); });
+  }
+}
+
+function onUnitChange() {
+  currentUnitKey = document.getElementById('unit-select').value;
+  loadUnit(currentUnitKey);
+}
+
+function loadUnit(key) {
+  const u = UNITS[key];
+  document.getElementById('header-title').textContent = u.cliente + ' — ' + u.unidade;
+  document.getElementById('client-logo').src = LOGOS[u.logo];
+  document.getElementById('docas-container').innerHTML =
+    '<p style="text-align:center;color:var(--text-muted);padding:2rem;">Carregando...</p>';
+  setSyncStatus('Carregando...');
+
+  clearTimeout(saveTimer); // Cancela save pendente de outra unidade
+  if (unsubSnapshot) { unsubSnapshot(); unsubSnapshot = null; }
+  if (unsubFotos) { unsubFotos(); unsubFotos = null; }
+  fotos = {};
+
+  const mes = monthKey();
+  const docRef = db.collection('checklists').doc(key + '_' + mes);
+
+  docRef.get().then(snap => {
+    // Se documento existe e tem docas, usa ele. Senão, recria (corrige dados corrompidos)
+    if (snap.exists && (snap.data().docas || []).length > 0) { startSnapshot(docRef); return; }
+    const prevRef = db.collection('checklists').doc(key + '_' + monthKey(-1));
+    return prevRef.get().then(prevSnap => {
+      nextId = 1;
+      const docas = buildFreshState(key, prevSnap.exists ? prevSnap.data().docas : []);
+      return docRef.set({ unitKey: key, mes, dataGlobal: '', respGlobal: '', docas })
+        .then(() => herdarFotos(prevRef, docRef, docas))
+        .then(() => startSnapshot(docRef));
+    });
+  }).catch(e => { console.error('loadUnit error:', e); setSyncStatus('Erro'); });
+}
+
+// Copia (mesmo id = idempotente) as fotos das corretivas herdadas para o mês novo.
+function herdarFotos(prevRef, docRef, docas) {
+  const herdada = (num, campo) => docas.some(d => d.num === num && (d[campo] === 'ressalva' || d[campo] === 'naook'));
+  return prevRef.collection('fotos').get()
+    .then(s => Promise.all(s.docs
+      .filter(x => herdada(x.data().doca, x.data().campo))
+      .map(x => docRef.collection('fotos').doc(x.id).set(x.data()))))
+    .catch(e => console.warn('Herança de fotos falhou:', e));
+}
+
+// ── FIRESTORE SYNC ────────────────────────────────────────────────────────────
+function startSnapshot(docRef) {
+  unsubFotos = docRef.collection('fotos').onSnapshot(snap => {
+    fotos = {};
+    snap.forEach(x => { fotos[x.id] = { id: x.id, ...x.data() }; });
+    renderAll();
+  }, e => console.error('Fotos snapshot error:', e));
+  unsubSnapshot = docRef.onSnapshot(snap => {
+    if (!snap.exists || snap.metadata.hasPendingWrites) return;
+    // Snapshot do nosso próprio save: não re-renderiza (evita fechar pickers e sobrescrever estado local)
+    if (justSaved) { justSaved = false; setSyncStatus('✓ Salvo'); return; }
+    const data = snap.data();
+    document.getElementById('data-global').value = data.dataGlobal || '';
+    document.getElementById('resp-global').value = data.respGlobal || '';
+    document.getElementById('obs-geral').value = data.obsGeral || '';
+    const openIds = new Set(state.filter(d => d.open).map(d => d.id));
+    state = (data.docas || []).map(d => ({ ...d, open: openIds.has(d.id) }));
+    nextId = state.length ? Math.max(...state.map(d => d.id)) + 1 : 1;
+    renderAll();
+    setSyncStatus('✓ Salvo');
+  }, e => { console.error('Snapshot error:', e); setSyncStatus('Erro'); });
+}
+
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  setSyncStatus('Salvando...');
+  saveTimer = setTimeout(saveToFirestore, 600);
+}
+
+function saveToFirestore() {
+  if (!fbReady || !state.length) return;
+  justSaved = true;
+  const mes = monthKey();
+  db.collection('checklists').doc(currentUnitKey + '_' + mes).update({
+    dataGlobal: document.getElementById('data-global').value,
+    respGlobal: document.getElementById('resp-global').value,
+    obsGeral: document.getElementById('obs-geral').value,
+    docas: state,
+  }).then(() => setSyncStatus('✓ Salvo'))
+    .catch(e => { console.error('save error:', e); setSyncStatus('Erro ao salvar'); });
+}
+
+function setSyncStatus(msg) { document.getElementById('sync-status').textContent = msg; }
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function renderAll() {
+  const container = document.getElementById('docas-container');
+  container.innerHTML = '';
+  state.forEach(d => container.appendChild(buildCard(d)));
+  updateSummary();
+}
+
+function buildCard(d) {
+  const wrap = document.createElement('div');
+  wrap.className = 'doca-card' + (d.locked ? ' locked' : '');
+  wrap.id = 'card-' + d.id;
+
+  const pLabel = d.portao ? STATUS_INFO[d.portao].label : '—';
+  const nLabel = d.nivel  ? STATUS_INFO[d.nivel].label  : '—';
+  const pPill  = d.portao ? STATUS_INFO[d.portao].pill  : 'pill-vazio';
+  const nPill  = d.nivel  ? STATUS_INFO[d.nivel].pill   : 'pill-vazio';
+  const canConfirm = d.portao && d.nivel && d.data && d.resp;
+  const dataFmt = fmtDate(d.data) || '—';
+
+  wrap.innerHTML = `
+    <div class="doca-card-header" onclick="toggleCard(${d.id})">
+      <div class="doca-info">
+        <div class="doca-badge">${d.num}</div>
+        <div>
+          <div class="doca-title">Doca ${d.num}</div>
+          <div class="doca-subtitle">${d.modelo}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div class="doca-status-pills">
+          ${d.locked ? '<span class="locked-badge">🔒 Confirmada</span>' : ''}
+          <span class="pill ${pPill}">P: ${pLabel}</span>
+          <span class="pill ${nPill}">N: ${nLabel}</span>
+        </div>
+        <span class="chevron ${d.open ? 'open' : ''}">&#8964;</span>
+      </div>
+    </div>
+    <div class="doca-body ${d.open ? 'open' : ''}">
+      ${buildStatusBlock(d, 'portao', 'Porta', true)}
+      <div class="divider"></div>
+      ${buildStatusBlock(d, 'nivel', 'Niveladora', d.temNiveladora)}
+      <div class="divider" style="margin-top:10px;"></div>
+      <div class="meta-grid" style="gap:6px;margin-top:6px;">
+        <div class="field">
+          <label>Data (esta doca)</label>
+          <input type="date" value="${d.data||''}" ${d.locked ? 'disabled' : ''} onchange="setDocaField(${d.id},'data',this.value,'dataManual')" />
+        </div>
+        <div class="field">
+          <label>Responsável</label>
+          <input type="text" value="${d.resp||''}" ${d.locked ? 'disabled' : ''} placeholder="Idem global" onblur="setDocaField(${d.id},'resp',this.value,'respManual')" />
+        </div>
+      </div>
+      ${d.locked
+        ? `<div class="doca-locked-info">🔒 Confirmada por <strong>${d.resp||'—'}</strong> em <strong>${dataFmt}</strong></div>`
+        : (canConfirm ? `<button class="confirm-btn" onclick="confirmarDoca(${d.id})">✓ Confirmar Doca ${d.num}</button>` : '')
+      }
+      ${!d.locked ? `<div style="margin-top:8px;text-align:right;">
+        <button onclick="removeDoca(${d.id})" style="background:none;border:none;color:#A32D2D;font-size:12px;cursor:pointer;font-family:var(--font);">✕ Remover doca</button>
+      </div>` : ''}
+    </div>
+  `;
+  return wrap;
+}
+
+function buildStatusBlock(d, campo, label, habilitado) {
+  if (!habilitado) {
+    return `
+      <div class="status-block">
+        <div class="status-block-label">${label}</div>
+        <div class="na-locked">Não se Aplica — esta doca não possui ${label.toLowerCase()}</div>
+      </div>
+    `;
+  }
+  const campoObs = campo + 'Obs';
+  const keys = ['ok','ressalva','naook','naoapl'];
+  const dis = d.locked ? 'disabled' : '';
+  const btns = keys.map(k => {
+    const active = d[campo] === k ? STATUS_INFO[k].cls : '';
+    return `<button class="sbtn ${active}" ${dis} onclick="setStatus(${d.id},'${campo}','${k}')">${STATUS_INFO[k].label}</button>`;
+  }).join('');
+  const showObs = d[campo] === 'ressalva' || d[campo] === 'naook';
+  return `
+    <div class="status-block">
+      <div class="status-block-label">${label}</div>
+      <div class="status-btns">${btns}</div>
+      ${showObs ? `<div class="obs-area"><textarea ${dis} placeholder="Descreva o problema..." oninput="setObs(${d.id},'${campoObs}',this.value)">${d[campoObs]||''}</textarea></div>${buildFotos(d, campo)}` : ''}
+    </div>
+  `;
+}
+
+// ── FOTOS (subcoleção checklists/{doc}/fotos, JPEG comprimido em base64) ─────────
+const fotosDe = (num, campo, lista = Object.values(fotos)) =>
+  lista.filter(f => f.doca === num && f.campo === campo).sort((a, b) => a.criadoEm - b.criadoEm);
+
+const fotosRef = () => db.collection('checklists').doc(currentUnitKey + '_' + monthKey()).collection('fotos');
+
+function thumbsHtml(num, campo, removivel) {
+  return fotosDe(num, campo).map(f => `<div class="foto-th"><img src="${f.dados}" alt="Foto" onclick="verFoto('${f.id}')">`
+    + (removivel ? `<button class="foto-x" onclick="removeFoto('${f.id}')">✕</button>` : '') + '</div>').join('');
+}
+
+function buildFotos(d, campo) {
+  const n = fotosDe(d.num, campo).length;
+  const add = !d.locked && n < MAX_FOTOS
+    ? `<label class="foto-add">📷 Foto ${n}/${MAX_FOTOS}<input type="file" accept="image/*" multiple hidden onchange="addFotos(${d.id},'${campo}',this)"></label>`
+    : '';
+  return (n || add) ? `<div class="foto-row">${thumbsHtml(d.num, campo, !d.locked)}${add}</div>` : '';
+}
+
+async function comprimirFoto(file, max = 1024) {
+  const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.7);
+}
+
+async function addFotos(id, campo, input) {
+  const d = state.find(x => x.id === id);
+  const files = [...input.files];
+  input.value = '';
+  if (!d || d.locked) return;
+  const room = MAX_FOTOS - fotosDe(d.num, campo).length;
+  if (files.length > room) showToast('Máximo de ' + MAX_FOTOS + ' fotos por item');
+  for (const f of files.slice(0, room)) {
+    try {
+      const dados = await comprimirFoto(f);
+      fotosRef().add({ doca: d.num, campo, dados, criadoEm: Date.now() })
+        .catch(e => { console.error('foto error:', e); showToast('Erro ao salvar foto'); });
+    } catch (e) { console.error('foto error:', e); showToast('Não foi possível ler a foto'); }
+  }
+}
+
+function removeFoto(fotoId) {
+  if (confirm('Remover esta foto?')) fotosRef().doc(fotoId).delete();
+}
+
+function apagarFotos(num, campo) {
+  fotosDe(num, campo).forEach(f => fotosRef().doc(f.id).delete());
+}
+
+function verFoto(fotoId) {
+  document.getElementById('foto-view-img').src = fotos[fotoId].dados;
+  document.getElementById('foto-view').classList.add('open');
+}
+
+// ── INTERACTIONS ──────────────────────────────────────────────────────────────
+function toggleCard(id) {
+  const d = state.find(x => x.id === id);
+  if (d) { d.open = !d.open; renderAll(); }
+}
+
+function setStatus(id, campo, val) {
+  const d = state.find(x => x.id === id);
+  if (!d) return;
+  if (d[campo] === val) { d[campo] = ''; d[campo + 'Obs'] = ''; apagarFotos(d.num, campo); }
+  else { d[campo] = val; }
+  renderAll();
+  scheduleSave();
+}
+
+function setObs(id, campo, val) {
+  const d = state.find(x => x.id === id);
+  if (d) { d[campo] = val; scheduleSave(); }
+}
+
+function setCorretivaField(id, campo, val) {
+  const d = state.find(x => x.id === id);
+  if (d) { d[campo] = val; scheduleSave(); updateCorretivas(); }
+}
+
+function setDocaField(id, campo, val, manualFlag) {
+  const d = state.find(x => x.id === id);
+  if (!d) return;
+  d[campo] = val;
+  d[manualFlag] = true;
+  scheduleSave();
+}
+
+function removeDoca(id) {
+  if (!confirm('Remover esta doca?')) return;
+  const rem = state.find(x => x.id === id);
+  if (rem) ['portao', 'nivel'].forEach(c => apagarFotos(rem.num, c));
+  state = state.filter(x => x.id !== id);
+  renderAll();
+  scheduleSave();
+}
+
+function confirmarDoca(id) {
+  const d = state.find(x => x.id === id);
+  if (!d) return;
+  d.locked = true;
+  d.open = false;
+  renderAll();
+  saveToFirestore();
+  showToast('Doca ' + d.num + ' confirmada e bloqueada!');
+}
+
+// ── ADD MODAL ─────────────────────────────────────────────────────────────────
+function openAddModal() { document.getElementById('add-modal').classList.add('open'); }
+function closeAddModal() { document.getElementById('add-modal').classList.remove('open'); }
+function confirmAddDoca() {
+  const num = document.getElementById('modal-num').value.trim();
+  const modelo = document.getElementById('modal-modelo').value.trim() || 'Não informado';
+  const temNiveladora = document.getElementById('modal-niv').checked;
+  if (!num) { alert('Informe o número da doca'); return; }
+  const dataGlobal = document.getElementById('data-global').value;
+  const respGlobal = document.getElementById('resp-global').value;
+  state.push({
+    id: nextId++, num, modelo, temNiveladora,
+    portao: '', portaoObs: '', portaoAtend: '', portaoMotivo: '',
+    nivel: temNiveladora ? '' : 'naoapl', nivelObs: '', nivelAtend: '', nivelMotivo: '',
+    data: dataGlobal, resp: respGlobal, dataManual: false, respManual: false,
+    open: true, locked: false,
+  });
+  closeAddModal();
+  document.getElementById('modal-num').value = '';
+  document.getElementById('modal-modelo').value = '';
+  document.getElementById('modal-niv').checked = true;
+  renderAll();
+  scheduleSave();
+  showToast('Doca ' + num + ' adicionada');
+}
+
+// ── SUMMARY ───────────────────────────────────────────────────────────────────
+function updateSummary() {
+  let ok=0, res=0, nok=0, na=0, total=0, filled=0;
+  state.forEach(d => {
+    [d.portao, d.nivel].forEach(val => {
+      total++;
+      if (val) filled++;
+      if (val==='ok') ok++;
+      else if (val==='ressalva') res++;
+      else if (val==='naook') nok++;
+      else if (val==='naoapl') na++;
+    });
+  });
+  document.getElementById('s-ok').textContent  = ok;
+  document.getElementById('s-res').textContent = res;
+  document.getElementById('s-nok').textContent = nok;
+  document.getElementById('s-na').textContent  = na;
+  const pct = total ? Math.round(filled/total*100) : 0;
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('header-subtitle').textContent = state.length + ' docas · ' + pct + '% preenchido';
+  document.getElementById('docas-progress').textContent = filled + '/' + total + ' preenchidos';
+  updateCorretivas();
+}
+
+function updateCorretivas() {
+  const list = document.getElementById('corretivas-list');
+  const items = [];
+  state.forEach(d => {
+    if ((d.portao === 'ressalva' || d.portao === 'naook') && !(d.portaoAtend && d.portaoMotivo))
+      items.push({ id: d.id, doca: d.num, equip: 'Porta', campo: 'portao', num: d.num, obs: d.portaoObs || '—', atendField: 'portaoAtend', motivoField: 'portaoMotivo', atend: d.portaoAtend, motivo: d.portaoMotivo });
+    if ((d.nivel === 'ressalva' || d.nivel === 'naook') && !(d.nivelAtend && d.nivelMotivo))
+      items.push({ id: d.id, doca: d.num, equip: 'Niveladora', campo: 'nivel', num: d.num, obs: d.nivelObs || '—', atendField: 'nivelAtend', motivoField: 'nivelMotivo', atend: d.nivelAtend, motivo: d.nivelMotivo });
+  });
+  if (!items.length) {
+    list.innerHTML = '<p class="empty-corretivas">Nenhuma corretiva registrada</p>';
+    return;
+  }
+  list.innerHTML = items.map(it => `
+    <div class="corretiva-item">
+      <div class="corretiva-head">
+        <span class="corretiva-doca">Doca ${it.doca}</span>
+        <span class="corretiva-equip">${it.equip}</span>
+      </div>
+      <div class="corretiva-text">${it.obs}</div>
+      <div class="foto-row" style="margin:0 0 8px;">${thumbsHtml(it.num, it.campo, false)}</div>
+      <div class="corretiva-grid">
+        <div class="cfield">
+          <label>Data Atendimento</label>
+          <input type="date" value="${it.atend||''}" onchange="setCorretivaField(${it.id},'${it.atendField}',this.value)" />
+        </div>
+        <div class="cfield">
+          <label>Motivo</label>
+          <input type="text" placeholder="Motivo" value="${it.motivo||''}" onchange="setCorretivaField(${it.id},'${it.motivoField}',this.value)" />
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── EXPORT TXT (rápido) ───────────────────────────────────────────────────────
+function exportCSV() {
+  const u = UNITS[currentUnitKey];
+  const data = document.getElementById('data-global').value || '';
+  const resp = document.getElementById('resp-global').value || '';
+  let csv = 'Cliente;Unidade;Nº Doca;Modelo;Data;Responsável;Porta;Obs Porta;Niveladora;Obs Niveladora\n';
+  state.forEach(d => {
+    const docaData = d.data || data;
+    const docaResp = d.resp || resp;
+    const dataFmt = fmtDate(docaData);
+    csv += [u.cliente, u.unidade, d.num, d.modelo, dataFmt, docaResp,
+      SL[d.portao]||'', d.portaoObs||'', SL[d.nivel]||'', d.nivelObs||''
+    ].join(';') + '\n';
+  });
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const dt   = data.replace(/-/g,'') || 'semdata';
+  a.href = url; a.download = 'preventiva_' + currentUnitKey + '_' + dt + '.csv'; a.click();
+  showToast('TXT/CSV exportado!');
+}
+
+// ── EXPORT XLSX (formato Belcito) ─────────────────────────────────────────────
+function buildWS(wb, unitKey, doc, listaFotos = []) {
+  const u = UNITS[unitKey];
+  const docas    = doc.docas    || [];
+  const data     = doc.dataGlobal || '';
+  const resp     = doc.respGlobal || '';
+  const obsGeral = doc.obsGeral  || '';
+  const dataFmt  = fmtDate(data);
+
+  const wsName = u.unidade.replace(/[\\\/\?\*\[\]:]/g,'').substring(0, 31);
+  const ws = wb.addWorksheet(wsName);
+
+  ws.getRow(1).height = 55;
+  for (let c = 1; c <= 8; c++)
+    ws.getCell(1, c).fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF1A1A18' } };
+  const belcitoImgId = wb.addImage({ base64: LOGOS.belcito, extension: 'png' });
+  const clienteImgId = wb.addImage({ base64: LOGOS[u.logo],  extension: 'png' });
+  ws.addImage(belcitoImgId, { tl:{ col:0, row:0 }, ext:{ width:230, height:45 } });
+
+  ws.mergeCells('A2:A5'); ws.mergeCells('B2:B5'); ws.mergeCells('C2:C5');
+  ws.addImage(clienteImgId, { tl:{ col:0.12, row:1.35 }, ext:{ width:100, height:45 }, editAs:'oneCell' });
+  ws.getCell('B2').value = u.unidade;
+  ws.getCell('C2').value = 'Legenda:';
+  ['A2','B2','C2'].forEach(addr => {
+    const cell = ws.getCell(addr);
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFA6A6A6' } };
+    cell.font = { bold:true };
+    cell.alignment = { vertical:'middle', horizontal:'center', wrapText:true };
+  });
+  ['ok','ressalva','naook','naoapl'].forEach((k, i) => {
+    ws.getCell('D'+(2+i)).value = STATUS_INFO[k].label;
+    ws.getCell('E'+(2+i)).value = STATUS_INFO[k].desc;
+    ws.getCell('D'+(2+i)).font = { bold:true };
+  });
+
+  const headerRow = 6;
+  ['Nº Doca','Modelo','Data','Responsável','Porta','Observação(ões)','Niveladora','Observação(ões)'].forEach((h, i) => {
+    const cell = ws.getCell(headerRow, i+1);
+    cell.value = h;
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFCC0000' } };
+    cell.font = { bold:true, color:{ argb:'FFFFFFFF' } };
+    cell.alignment = { vertical:'middle', horizontal:'center' };
+  });
+
+  let r = headerRow + 1;
+  if (!docas.length) {
+    ws.getCell('A'+r).value = 'Sem dados registrados neste mês';
+  } else {
+    docas.forEach(d => {
+      const docaDataFmt = fmtDate(d.data || data);
+      ws.getRow(r).values = [
+        d.num, d.modelo, docaDataFmt, d.resp||resp,
+        SL[d.portao]||'Não preenchido', d.portaoObs||'',
+        SL[d.nivel]||'Não preenchido',  d.nivelObs||'',
+      ];
+      r++;
+    });
+  }
+
+  let ok=0,res=0,nok=0,na=0;
+  const corretivas = [];
+  docas.forEach(d => {
+    [['portao',d.portao,d.portaoObs,'Porta',d.portaoAtend,d.portaoMotivo],
+     ['nivel', d.nivel, d.nivelObs, 'Niveladora',d.nivelAtend,d.nivelMotivo]].forEach(([campo,v,o,eq,atend,motivo]) => {
+      if(v==='ok') ok++;
+      else if(v==='ressalva') res++;
+      else if(v==='naook')    nok++;
+      else if(v==='naoapl')   na++;
+      if(v==='ressalva'||v==='naook') corretivas.push({doca:d.num,equip:eq,campo,obs:o||'—',atend:atend||'',motivo:motivo||''});
+    });
+  });
+
+  if (obsGeral) {
+    r += 1;
+    ws.getCell('A'+r).value = 'OBS. GERAL DA VISITA'; ws.getCell('A'+r).font = { bold:true }; r++;
+    ws.getCell('A'+r).value = obsGeral;
+  }
+  r += 1;
+  ws.getCell('A'+r).value = 'RESUMO'; ws.getCell('A'+r).font = { bold:true }; r++;
+  ws.getRow(r).values = ['Preventiva Ok', ok, 'Com Ressalvas', res, 'Não Ok', nok, 'Não se Aplica', na];
+  ws.getRow(r).font = { bold:true };
+
+  r += 2;
+  ws.getCell('A'+r).value = 'CORRETIVAS'; ws.getCell('A'+r).font = { bold:true }; r++;
+  ['Item','Doca','Descrição','Atendimento','Motivo','Fotos'].forEach((h, i) => {
+    const cell = ws.getCell(r, i+1);
+    cell.value = h;
+    cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFCC0000' } };
+    cell.font = { bold:true, color:{ argb:'FFFFFFFF' } };
+  });
+  r++;
+  if (!corretivas.length) {
+    ws.getCell('A'+r).value = 'Nenhuma corretiva registrada';
+  } else {
+    corretivas.forEach((c, i) => {
+      const atendFmt = fmtDate(c.atend);
+      ws.getRow(r).values = [i+1, c.doca, c.obs, atendFmt, c.motivo];
+      const fs = fotosDe(c.doca, c.campo, listaFotos).slice(0, MAX_FOTOS);
+      if (fs.length) ws.getRow(r).height = 70;
+      fs.forEach((f, k) => ws.addImage(wb.addImage({ base64: f.dados, extension:'jpeg' }),
+        { tl:{ col:5 + k, row:r - 1 }, ext:{ width:90, height:68 }, editAs:'oneCell' }));
+      r++;
+    });
+  }
+
+  ws.columns.forEach(col => {
+    let maxLen = 10;
+    col.eachCell({ includeEmpty:true }, cell => {
+      const len = cell.value ? String(cell.value).length : 0;
+      if (len > maxLen) maxLen = len;
+    });
+    col.width = Math.min(maxLen + 2, 60);
+  });
+}
+
+async function exportXLSX() {
+  const wb = new ExcelJS.Workbook();
+  buildWS(wb, currentUnitKey, {
+    dataGlobal: document.getElementById('data-global').value || '',
+    respGlobal: document.getElementById('resp-global').value || '',
+    obsGeral:   document.getElementById('obs-geral').value   || '',
+    docas: state,
+  }, Object.values(fotos));
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type:'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dt = (document.getElementById('data-global').value||'').replace(/-/g,'') || 'semdata';
+  a.href = url; a.download = 'preventiva_' + currentUnitKey + '_' + dt + '.xlsx'; a.click();
+  showToast('XLSX exportado!');
+}
+
+// ── GESTOR ────────────────────────────────────────────────────────────────────
+let gestorDados = {};
+
+function openGestorLogin() {
+  document.getElementById('gestor-senha').value = '';
+  document.getElementById('gestor-erro').textContent = '';
+  document.getElementById('gestor-login-modal').style.display = 'flex';
+}
+
+function closeGestorLogin() {
+  document.getElementById('gestor-login-modal').style.display = 'none';
+}
+
+async function gestorLogin() {
+  const senha = document.getElementById('gestor-senha').value;
+  try {
+    const snap = await db.collection('_config').doc('gestor').get();
+    if (!snap.exists) {
+      document.getElementById('gestor-erro').textContent = 'Documento _config/gestor não encontrado no Firestore.';
+      return;
+    }
+    const senhaCorreta = snap.data().senha ?? snap.data().gestor?.senha;
+    if (senhaCorreta !== senha) {
+      document.getElementById('gestor-erro').textContent = 'Senha incorreta.';
+      return;
+    }
+  } catch(e) {
+    document.getElementById('gestor-erro').textContent = 'Erro: ' + e.message;
+    return;
+  }
+  closeGestorLogin();
+  document.getElementById('gestor-mes').value = monthKey();
+  document.getElementById('gestor-panel').style.display = 'flex';
+}
+
+function fecharGestor() {
+  document.getElementById('gestor-panel').style.display = 'none';
+  document.getElementById('gestor-tabela-wrap').style.display = 'none';
+  document.getElementById('gestor-bloqueadas-wrap').style.display = 'none';
+  gestorDados = {};
+}
+
+async function gestorCarregar() {
+  const mes = document.getElementById('gestor-mes').value;
+  if (!mes) { showToast('Selecione um mês'); return; }
+  setSyncStatus('Carregando...');
+  const keys = Object.keys(UNITS);
+  const snaps = await Promise.all(keys.map(k => db.collection('checklists').doc(k + '_' + mes).get()));
+  gestorDados = {};
+  const tbody = document.getElementById('gestor-table-body');
+  tbody.innerHTML = '';
+  let gOk=0,gRes=0,gNok=0,gCorr=0,gTotalP=0,gFilledP=0,gTotalN=0,gFilledN=0;
+  snaps.forEach((snap, i) => {
+    const key = keys[i];
+    const u = UNITS[key];
+    const doc = snap.exists ? snap.data() : null;
+    gestorDados[key] = doc || { dataGlobal:'', respGlobal:'', obsGeral:'', docas:[] };
+    let ok=0,res=0,nok=0,totalP=0,filledP=0,totalN=0,filledN=0;
+    if (doc && doc.docas) {
+      doc.docas.forEach(d => {
+        // portão — toda doca tem portão
+        totalP++; gTotalP++;
+        if (d.portao) { filledP++; gFilledP++; }
+        if (d.portao==='ok') { ok++; gOk++; }
+        else if (d.portao==='ressalva') { res++; gRes++; }
+        else if (d.portao==='naook') { nok++; gNok++; }
+        // niveladora — só conta docas que têm niveladora física
+        if (d.temNiveladora) {
+          totalN++; gTotalN++;
+          if (d.nivel) { filledN++; gFilledN++; }
+        }
+        if (d.nivel==='ok') { ok++; gOk++; }
+        else if (d.nivel==='ressalva') { res++; gRes++; }
+        else if (d.nivel==='naook') { nok++; gNok++; }
+      });
+    }
+    const corr = res + nok; gCorr += corr;
+    const tr = document.createElement('tr');
+    if (!doc) tr.className = 'sem-dados';
+    tr.setAttribute('data-cliente', u.cliente);
+    tr.innerHTML = `<td>${u.cliente}</td><td>${!doc ? '⚠ ' : ''}${u.unidade}</td>`
+      + `<td>${doc ? filledP+'/'+totalP : '—'}</td>`
+      + `<td>${doc ? (totalN ? filledN+'/'+totalN : 'N/A') : '—'}</td>`
+      + `<td>${doc ? ok   : '—'}</td>`
+      + `<td>${doc ? res  : '—'}</td>`
+      + `<td>${doc ? nok  : '—'}</td>`
+      + `<td>${doc ? corr : '—'}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('gestor-stats').innerHTML =
+    `<div class="g-stat"><div class="g-num">${gFilledP}/${gTotalP}</div><div class="g-lbl">Portas</div></div>`
+    +`<div class="g-stat"><div class="g-num">${gFilledN}/${gTotalN}</div><div class="g-lbl">Niveladoras</div></div>`
+    +`<div class="g-stat g-ok"><div class="g-num">${gOk}</div><div class="g-lbl">Preventiva Ok</div></div>`
+    +`<div class="g-stat g-res"><div class="g-num">${gRes}</div><div class="g-lbl">Com Ressalvas</div></div>`
+    +`<div class="g-stat g-nok"><div class="g-num">${gNok}</div><div class="g-lbl">Não Ok</div></div>`
+    +`<div class="g-stat g-corr"><div class="g-num">${gCorr}</div><div class="g-lbl">Corretivas</div></div>`;
+  document.getElementById('gestor-tabela-wrap').style.display = 'block';
+  document.getElementById('gestor-filtro-cliente').value = '';
+  gestorRenderBloqueadas();
+  setSyncStatus('');
+}
+
+function filtrarGestorTabela() {
+  const filtro = document.getElementById('gestor-filtro-cliente').value;
+  document.querySelectorAll('#gestor-table-body tr').forEach(tr => {
+    tr.style.display = (!filtro || tr.dataset.cliente === filtro) ? '' : 'none';
+  });
+}
+
+function gestorRenderBloqueadas() {
+  const items = [];
+  Object.keys(gestorDados).forEach(key => {
+    const doc = gestorDados[key];
+    if (!doc || !doc.docas) return;
+    const u = UNITS[key];
+    doc.docas.filter(d => d.locked).forEach(d => {
+      items.push({ key, label: u.cliente + ' — ' + u.unidade, doca: d.num, resp: d.resp, data: d.data });
+    });
+  });
+  const wrap = document.getElementById('gestor-bloqueadas-wrap');
+  const list = document.getElementById('gestor-bloqueadas-list');
+  if (!items.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  list.innerHTML = items.map(it => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee;">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#1a1a18;">${it.label} — Doca ${it.doca}</div>
+        <div style="font-size:11px;color:#777;">Confirmada por ${it.resp||'—'} em ${fmtDate(it.data)||'—'}</div>
+      </div>
+      <button onclick="gestorDesbloquear('${it.key}','${it.doca}')" style="background:#CC0000;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;">Desbloquear</button>
+    </div>
+  `).join('');
+}
+
+async function gestorDesbloquear(unitKey, docaNum) {
+  if (!confirm('Desbloquear Doca ' + docaNum + ' de ' + UNITS[unitKey].unidade + '?')) return;
+  const mes = document.getElementById('gestor-mes').value;
+  const doc = gestorDados[unitKey];
+  if (!doc) return;
+  doc.docas = doc.docas.map(d => d.num === docaNum ? { ...d, locked: false } : d);
+  await db.collection('checklists').doc(unitKey + '_' + mes).update({ docas: doc.docas });
+  gestorRenderBloqueadas();
+  showToast('Doca ' + docaNum + ' desbloqueada');
+}
+
+async function exportGestorXLSX() {
+  if (!Object.keys(gestorDados).length) { showToast('Carregue os dados primeiro'); return; }
+  const mes = document.getElementById('gestor-mes').value;
+  setSyncStatus('Gerando XLSX...');
+  const wb = new ExcelJS.Workbook();
+  const keys = Object.keys(gestorDados);
+  const listas = await Promise.all(keys.map(k =>
+    db.collection('checklists').doc(k + '_' + mes).collection('fotos').get().then(s => s.docs.map(x => x.data()))));
+  keys.forEach((key, i) => buildWS(wb, key, gestorDados[key], listas[i]));
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type:'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'preventiva_consolidado_' + mes + '.xlsx'; a.click();
+  setSyncStatus('');
+  showToast('XLSX consolidado exportado!');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+init();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/checklist-preventiva/sw.js');
+}
+</script>
+</body>
+</html>
