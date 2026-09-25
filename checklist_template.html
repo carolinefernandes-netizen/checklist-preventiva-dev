@@ -1560,6 +1560,8 @@ function loadUnit(key) {
   if (unsubSnapshot) { unsubSnapshot(); unsubSnapshot = null; }
   if (unsubFotos) { unsubFotos(); unsubFotos = null; }
   fotos = {};
+  state = [];        // não deixar docas da unidade anterior na tela (e no próximo save)
+  justSaved = false; // senão o 1º snapshot da unidade nova seria engolido
 
   const mes = monthKey();
   const docRef = db.collection('checklists').doc(key + '_' + mes);
@@ -1593,7 +1595,7 @@ function startSnapshot(docRef) {
   unsubFotos = docRef.collection('fotos').onSnapshot(snap => {
     fotos = {};
     snap.forEach(x => { fotos[x.id] = { id: x.id, ...x.data() }; });
-    renderAll();
+    if (state.length) renderAll();
   }, e => console.error('Fotos snapshot error:', e));
   unsubSnapshot = docRef.onSnapshot(snap => {
     if (!snap.exists || snap.metadata.hasPendingWrites) return;
