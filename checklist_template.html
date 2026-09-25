@@ -804,7 +804,7 @@ if (ENV === 'dev') {
             <thead>
               <tr>
                 <th>Cliente</th><th>Unidade</th><th>Portas</th><th>Niveladoras</th>
-                <th class="n">Ok</th><th class="n">Ressalva</th><th class="n">Não Ok</th><th class="n">Corretivas</th>
+                <th class="n">Ok</th><th class="n">Ressalva</th><th class="n">Não Ok</th><th class="n" title="Corretivas abertas (Ressalva/Não Ok sem data e motivo de atendimento)">Corretivas</th>
               </tr>
             </thead>
             <tbody id="gestor-table-body"></tbody>
@@ -2075,6 +2075,9 @@ function buildCard(d) {
 const respGlobal = () => document.getElementById('resp-global').value.trim();
 const respPlaceholder = () => respGlobal() ? 'Idem: ' + respGlobal() : 'Nome do técnico';
 const temProblema = v => v === 'ressalva' || v === 'naook';
+// Corretiva ABERTA = Ressalva/Não Ok ainda sem data de atendimento E motivo. Critério único: lista do técnico e painel do gestor.
+const corretivaAberta = (status, atend, motivo) => temProblema(status) && !(atend && motivo);
+const corretivasAbertasDaDoca = d => [corretivaAberta(d.portao, d.portaoAtend, d.portaoMotivo), corretivaAberta(d.nivel, d.nivelAtend, d.nivelMotivo)].filter(Boolean).length;
 
 function pendencias(d) {
   const p = [];
@@ -2326,9 +2329,9 @@ function updateCorretivas() {
   const list = document.getElementById('corretivas-list');
   const items = [];
   state.forEach(d => {
-    if ((d.portao === 'ressalva' || d.portao === 'naook') && !(d.portaoAtend && d.portaoMotivo))
+    if (corretivaAberta(d.portao, d.portaoAtend, d.portaoMotivo))
       items.push({ id: d.id, doca: d.num, equip: 'Porta', campo: 'portao', num: d.num, obs: d.portaoObs || '—', atendField: 'portaoAtend', motivoField: 'portaoMotivo', atend: d.portaoAtend, motivo: d.portaoMotivo });
-    if ((d.nivel === 'ressalva' || d.nivel === 'naook') && !(d.nivelAtend && d.nivelMotivo))
+    if (corretivaAberta(d.nivel, d.nivelAtend, d.nivelMotivo))
       items.push({ id: d.id, doca: d.num, equip: 'Niveladora', campo: 'nivel', num: d.num, obs: d.nivelObs || '—', atendField: 'nivelAtend', motivoField: 'nivelMotivo', atend: d.nivelAtend, motivo: d.nivelMotivo });
   });
   if (!items.length) {
@@ -2655,7 +2658,7 @@ function gestorRender() {
   Object.keys(gestorDados).filter(k => !filtro || UNITS[k].cliente === filtro).forEach(key => {
     const u = UNITS[key];
     const doc = gestorExiste[key] ? gestorDados[key] : null;
-    let ok=0,res=0,nok=0,totalP=0,filledP=0,totalN=0,filledN=0;
+    let ok=0,res=0,nok=0,corr=0,totalP=0,filledP=0,totalN=0,filledN=0;
     if (doc && doc.docas) {
       doc.docas.forEach(d => {
         // portão — toda doca tem portão
@@ -2672,9 +2675,9 @@ function gestorRender() {
         if (d.nivel==='ok') { ok++; gOk++; }
         else if (d.nivel==='ressalva') { res++; gRes++; }
         else if (d.nivel==='naook') { nok++; gNok++; }
+        const abertas = corretivasAbertasDaDoca(d); corr += abertas; gCorr += abertas;
       });
     }
-    const corr = res + nok; gCorr += corr;
     const tr = document.createElement('tr');
     const inicio = `<td class="gp-cli">${esc(u.cliente)}</td><td class="gp-uni">${esc(u.unidade)}</td>`;
     if (!doc) {
@@ -2696,7 +2699,7 @@ function gestorRender() {
     +`<div class="gp-stat ok"><div class="gp-stat-lbl">Preventiva Ok</div><div class="gp-stat-num">${gOk}</div></div>`
     +`<div class="gp-stat res"><div class="gp-stat-lbl">Com Ressalvas</div><div class="gp-stat-num">${gRes}</div></div>`
     +`<div class="gp-stat nok"><div class="gp-stat-lbl">Não Ok</div><div class="gp-stat-num">${gNok}</div></div>`
-    +`<div class="gp-stat corr"><div class="gp-stat-lbl">Corretivas</div><div class="gp-stat-num">${gCorr}</div></div>`;
+    +`<div class="gp-stat corr"><div class="gp-stat-lbl">Corretivas abertas</div><div class="gp-stat-num">${gCorr}</div></div>`;
   gestorRenderBloqueadas();
 }
 
