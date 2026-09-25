@@ -452,6 +452,9 @@
   .locked-badge { display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; color:#3B6D11; background:#EAF3DE; border:1px solid #639922; border-radius:12px; padding:2px 7px; }
   .confirm-btn { width:100%; margin-top:10px; padding:11px; background:#3B6D11; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; font-family:var(--font); cursor:pointer; letter-spacing:.2px; }
   .confirm-btn:active { background:#2a5009; transform:scale(0.98); }
+  .doca-card.locked .sbtn, .doca-card.locked input, .doca-card.locked textarea { opacity: .55; cursor: default; }
+  .doca-card.locked .sbtn:active { transform: none; }
+  .doca-card.locked .sbtn[class*="active-"] { opacity: 1; }
   .confirm-pend { margin-top:10px; padding:10px 12px; border:1px dashed var(--amber-border); border-radius:8px; font-size:12px; font-weight:600; color:var(--amber); background:var(--amber-bg); }
   .doca-locked-info { background:#EAF3DE; border:1px solid #639922; border-radius:8px; padding:9px 12px; margin-top:8px; font-size:12px; color:#3B6D11; }
 </style>
@@ -593,7 +596,9 @@
           </table>
         </div>
         <button class="gestor-export-btn" onclick="exportGestorXLSX()">📊 Exportar XLSX Consolidado</button>
-      <div class="gestor-card" id="gestor-bloqueadas-wrap" style="display:none;margin-top:16px;">
+      </div>
+
+      <div class="gestor-card" id="gestor-bloqueadas-wrap" style="display:none;">
         <h3>Docas Confirmadas 🔒</h3>
         <div id="gestor-bloqueadas-list"></div>
       </div>
@@ -601,7 +606,6 @@
     </div>
 
   </div>
-</div>
 </div>
 
 <!-- ADD MODAL -->
@@ -1442,6 +1446,7 @@ const STATUS_INFO = {
 };
 const SL = { ok:'Preventiva Ok', ressalva:'Com Ressalvas', naook:'Não Ok', naoapl:'Não se Aplica', '':'Não preenchido' };
 const fmtDate = s => s ? s.split('-').reverse().join('/') : '';
+const numOuTexto = v => /^(0|[1-9]\d*)$/.test(String(v)) ? Number(v) : v;
 
 let currentUnitKey = 'shopee_simoes_filho';
 let state = [];
@@ -2008,10 +2013,11 @@ function buildWS(wb, unitKey, doc, listaFotos = []) {
     docas.forEach(d => {
       const docaDataFmt = fmtDate(d.data || data);
       ws.getRow(r).values = [
-        d.num, d.modelo, docaDataFmt, d.resp||resp,
+        numOuTexto(d.num), d.modelo, docaDataFmt, d.resp||resp,
         SL[d.portao]||'Não preenchido', d.portaoObs||'',
         SL[d.nivel]||'Não preenchido',  d.nivelObs||'',
       ];
+      ws.getCell('A'+r).alignment = { horizontal:'center' };
       r++;
     });
   }
@@ -2046,24 +2052,31 @@ function buildWS(wb, unitKey, doc, listaFotos = []) {
     cell.value = h;
     cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFCC0000' } };
     cell.font = { bold:true, color:{ argb:'FFFFFFFF' } };
+    if (h === 'Fotos') cell.alignment = { horizontal:'center' };
   });
+  ws.mergeCells(r, 6, r, 8); // "Fotos" cobre as 3 colunas das miniaturas
   r++;
   if (!corretivas.length) {
     ws.getCell('A'+r).value = 'Nenhuma corretiva registrada';
   } else {
     corretivas.forEach((c, i) => {
       const atendFmt = fmtDate(c.atend);
-      ws.getRow(r).values = [i+1, c.doca, c.obs, atendFmt, c.motivo];
+      ws.getRow(r).values = [i+1, numOuTexto(c.doca), c.obs, atendFmt, c.motivo];
+      ws.getCell('B'+r).alignment = { horizontal:'center' };
       const fs = fotosDe(c.doca, c.campo, listaFotos).slice(0, MAX_FOTOS);
-      if (fs.length) ws.getRow(r).height = 70;
+      if (fs.length) {
+        ws.getRow(r).height = 70; // ≈93px: foto de 68px centralizada com 0.13 de linha acima
+        for (let col = 1; col <= 5; col++)
+          ws.getCell(r, col).alignment = { ...ws.getCell(r, col).alignment, vertical:'middle' };
+      }
       fs.forEach((f, k) => ws.addImage(wb.addImage({ base64: f.dados, extension:'jpeg' }),
-        { tl:{ col:5 + k, row:r - 1 }, ext:{ width:90, height:68 }, editAs:'oneCell' }));
+        { tl:{ col:5 + k + 0.05, row:r - 1 + 0.13 }, ext:{ width:90, height:68 }, editAs:'oneCell' }));
       r++;
     });
   }
 
   ws.columns.forEach(col => {
-    let maxLen = 10;
+    let maxLen = col.number >= 6 && col.number <= 8 ? 12 : 10; // F–H: ≥ ~103px p/ caber a miniatura de 90px
     col.eachCell({ includeEmpty:true }, cell => {
       const len = cell.value ? String(cell.value).length : 0;
       if (len > maxLen) maxLen = len;
@@ -2091,6 +2104,7 @@ async function exportXLSX() {
 
 // ── GESTOR ────────────────────────────────────────────────────────────────────
 let gestorDados = {};
+let gestorExiste = {};
 
 function openGestorLogin() {
   document.getElementById('gestor-senha').value = '';
@@ -2137,15 +2151,26 @@ async function gestorCarregar() {
   setSyncStatus('Carregando...');
   const keys = Object.keys(UNITS);
   const snaps = await Promise.all(keys.map(k => db.collection('checklists').doc(k + '_' + mes).get()));
-  gestorDados = {};
+  gestorDados = {}; gestorExiste = {};
+  snaps.forEach((snap, i) => {
+    gestorExiste[keys[i]] = snap.exists;
+    gestorDados[keys[i]] = snap.exists ? snap.data() : { dataGlobal:'', respGlobal:'', obsGeral:'', docas:[] };
+  });
+  document.getElementById('gestor-filtro-cliente').value = '';
+  document.getElementById('gestor-tabela-wrap').style.display = 'block';
+  gestorRender();
+  setSyncStatus('');
+}
+
+// Desenha cards de resumo, tabela e docas confirmadas respeitando o filtro de cliente.
+function gestorRender() {
+  const filtro = document.getElementById('gestor-filtro-cliente').value;
   const tbody = document.getElementById('gestor-table-body');
   tbody.innerHTML = '';
   let gOk=0,gRes=0,gNok=0,gCorr=0,gTotalP=0,gFilledP=0,gTotalN=0,gFilledN=0;
-  snaps.forEach((snap, i) => {
-    const key = keys[i];
+  Object.keys(gestorDados).filter(k => !filtro || UNITS[k].cliente === filtro).forEach(key => {
     const u = UNITS[key];
-    const doc = snap.exists ? snap.data() : null;
-    gestorDados[key] = doc || { dataGlobal:'', respGlobal:'', obsGeral:'', docas:[] };
+    const doc = gestorExiste[key] ? gestorDados[key] : null;
     let ok=0,res=0,nok=0,totalP=0,filledP=0,totalN=0,filledN=0;
     if (doc && doc.docas) {
       doc.docas.forEach(d => {
@@ -2168,7 +2193,6 @@ async function gestorCarregar() {
     const corr = res + nok; gCorr += corr;
     const tr = document.createElement('tr');
     if (!doc) tr.className = 'sem-dados';
-    tr.setAttribute('data-cliente', u.cliente);
     tr.innerHTML = `<td>${u.cliente}</td><td>${!doc ? '⚠ ' : ''}${u.unidade}</td>`
       + `<td>${doc ? filledP+'/'+totalP : '—'}</td>`
       + `<td>${doc ? (totalN ? filledN+'/'+totalN : 'N/A') : '—'}</td>`
@@ -2185,24 +2209,17 @@ async function gestorCarregar() {
     +`<div class="g-stat g-res"><div class="g-num">${gRes}</div><div class="g-lbl">Com Ressalvas</div></div>`
     +`<div class="g-stat g-nok"><div class="g-num">${gNok}</div><div class="g-lbl">Não Ok</div></div>`
     +`<div class="g-stat g-corr"><div class="g-num">${gCorr}</div><div class="g-lbl">Corretivas</div></div>`;
-  document.getElementById('gestor-tabela-wrap').style.display = 'block';
-  document.getElementById('gestor-filtro-cliente').value = '';
   gestorRenderBloqueadas();
-  setSyncStatus('');
 }
 
-function filtrarGestorTabela() {
-  const filtro = document.getElementById('gestor-filtro-cliente').value;
-  document.querySelectorAll('#gestor-table-body tr').forEach(tr => {
-    tr.style.display = (!filtro || tr.dataset.cliente === filtro) ? '' : 'none';
-  });
-}
+function filtrarGestorTabela() { gestorRender(); }
 
 function gestorRenderBloqueadas() {
   const items = [];
+  const filtro = document.getElementById('gestor-filtro-cliente').value;
   Object.keys(gestorDados).forEach(key => {
     const doc = gestorDados[key];
-    if (!doc || !doc.docas) return;
+    if (!doc || !doc.docas || (filtro && UNITS[key].cliente !== filtro)) return;
     const u = UNITS[key];
     doc.docas.filter(d => d.locked).forEach(d => {
       items.push({ key, label: u.cliente + ' — ' + u.unidade, doca: d.num, resp: d.resp, data: d.data });
