@@ -1696,7 +1696,6 @@ const auth = firebase.auth();
 let usuario = null; // { email, uid, nome, papel } — só existe depois de autorizado
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ehGestor = () => !!usuario && usuario.papel === 'gestor';
-let erroLoginPendente = ''; // erro do getRedirectResult, mostrado na tela de login
 
 function mostrarTela(qual, dados = {}) {
   const g = id => document.getElementById(id);
@@ -1715,7 +1714,7 @@ function mostrarTela(qual, dados = {}) {
   g('auth-btn-google').style.display = cfg[2] ? 'block' : 'none';
   g('auth-btn-tentar').style.display = cfg[3] ? 'block' : 'none';
   g('auth-btn-sair').style.display = cfg[4] ? 'block' : 'none';
-  g('auth-erro').textContent = dados.erro || (qual === 'login' ? erroLoginPendente : '');
+  g('auth-erro').textContent = dados.erro || '';
 }
 
 function msgErroLogin(e) {
@@ -1723,7 +1722,7 @@ function msgErroLogin(e) {
     'auth/unauthorized-domain': 'Domínio não autorizado no Firebase (Authentication > Settings > Authorized domains).',
     'auth/operation-not-allowed': 'Login com Google não está ativado neste projeto do Firebase.',
     'auth/network-request-failed': 'Sem conexão. Tente de novo.',
-    'auth/popup-blocked': 'O navegador bloqueou a janela de login.',
+    'auth/popup-blocked': 'Habilite pop-ups para este site e tente novamente.',
   })[e.code] || ('Erro ao entrar: ' + (e.code || e.message));
 }
 
@@ -1731,28 +1730,20 @@ function iniciarAuth() {
   setSyncStatus('Conectando...');
   mostrarTela('verificando');
   auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {}); // sessão sobrevive offline
-  auth.getRedirectResult().catch(e => { erroLoginPendente = msgErroLogin(e); mostrarTela('login'); });
   auth.onAuthStateChanged(user => { user ? verificarAcesso() : (encerrarSessao(), mostrarTela('login'), setSyncStatus('')); });
 }
 
-// redirect no celular/PWA instalado (popup não é confiável); popup no desktop
-const usarRedirect = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-async function entrarGoogle() {
+// Sempre popup (redirect falha no celular: authDomain *.firebaseapp.com ≠ site *.github.io).
+// Chamado direto do clique — nada de await antes do signInWithPopup, senão o navegador bloqueia a janela.
+function entrarGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
-  erroLoginPendente = '';
   document.getElementById('auth-erro').textContent = '';
-  try {
-    if (usarRedirect()) await auth.signInWithRedirect(provider);
-    else await auth.signInWithPopup(provider);
-  } catch (e) {
-    if (e.code === 'auth/popup-blocked') {
-      try { await auth.signInWithRedirect(provider); return; } catch (e2) { e = e2; }
-    }
-    if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request')
-      document.getElementById('auth-erro').textContent = msgErroLogin(e);
-  }
+  return auth.signInWithPopup(provider).catch(e => {
+    // o usuário só fechou/cancelou a janela: sem mensagem de erro
+    if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') return;
+    document.getElementById('auth-erro').textContent = msgErroLogin(e);
+  });
 }
 
 async function verificarAcesso() {
