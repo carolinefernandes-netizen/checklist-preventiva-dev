@@ -473,36 +473,89 @@ if (ENV === 'dev') {
   .usr-row button { border:1px solid #ccc; background:#f4f4f2; border-radius:6px; padding:5px 10px; font-size:11px; font-weight:600; cursor:pointer; white-space:nowrap; }
   .usr-form input, .usr-form select { background:#f4f4f2; border:1px solid #ccc; color:#1a1a18; border-radius:6px; padding:8px 10px; font-size:13px; flex:1; min-width:120px; }
   .gestor-link { display:block; text-align:center; margin:4px 0 12px; background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; text-decoration:underline; }
-  #gestor-panel { position:fixed; inset:0; background:#f0f0ee; z-index:200; display:none; flex-direction:column; overflow-y:auto; font-family:var(--font); }
-  .gestor-header { background:#1a1a18; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:10; box-shadow:0 2px 8px rgba(0,0,0,.35); }
-  .gestor-header h2 { color:#fff; font-size:15px; font-weight:700; letter-spacing:.3px; }
-  .gestor-header .g-sub { color:#aaa; font-size:11px; margin-top:2px; }
-  .gestor-sair { background:#CC0000; color:#fff; border:none; border-radius:6px; padding:7px 14px; font-size:13px; font-weight:600; cursor:pointer; }
-  .gestor-body { padding:20px 16px; max-width:760px; margin:0 auto; width:100%; }
-  .gestor-card { background:#fff; border-radius:10px; box-shadow:0 1px 4px rgba(0,0,0,.10); padding:16px; margin-bottom:16px; }
-  .gestor-card h3 { font-size:13px; font-weight:700; color:#1a1a18; margin-bottom:12px; text-transform:uppercase; letter-spacing:.5px; }
-  .gestor-controls { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
-  .gestor-controls .field label { color:#444; font-size:12px; font-weight:600; }
-  .gestor-controls input[type=month] { background:#f4f4f2; border:1px solid #ccc; color:#1a1a18; border-radius:6px; padding:8px 10px; font-size:13px; }
-  .gestor-controls .btn-carregar { background:#CC0000; color:#fff; border:none; border-radius:6px; padding:9px 20px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
-  .gestor-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:10px; margin-bottom:16px; }
-  .g-stat { background:#fff; border-radius:10px; box-shadow:0 1px 4px rgba(0,0,0,.10); padding:12px; text-align:center; }
-  .g-stat .g-num { font-size:22px; font-weight:800; color:#1a1a18; }
-  .g-stat .g-lbl { font-size:10px; color:#777; text-transform:uppercase; letter-spacing:.4px; margin-top:2px; }
-  .g-stat.g-ok .g-num { color:#2e7d32; }
-  .g-stat.g-res .g-num { color:#e65100; }
-  .g-stat.g-nok .g-num { color:#CC0000; }
-  .g-stat.g-corr .g-num { color:#6a1a1a; }
+  /* ══ REDESENHO — FASE 3 (painel do gestor) ══ */
+  #gestor-panel { position:fixed; inset:0; background:var(--bg); color:var(--ink); z-index:200; display:none; flex-direction:column; overflow-y:auto; font-family:var(--font); }
+  .gp-header { flex-shrink:0; position:sticky; top:0; z-index:10; min-height:72px; padding:12px 24px; background:var(--header-bg); color:var(--header-text); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px 16px; }
+  .gp-brand { display:flex; align-items:center; gap:12px; min-width:0; }
+  .gp-brand img { width:40px; height:40px; border-radius:8px; object-fit:cover; background:#fff; flex-shrink:0; }
+  .gp-brand h2 { font-family:var(--font-cond); font-size:20px; font-weight:700; line-height:1.1; }
+  .gp-brand p { margin-top:2px; font-size:13px; color:#CFCAC2; }
+  .gp-actions { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+  .gp-periodo { position:relative; height:44px; padding:0 14px; display:inline-flex; align-items:center; gap:8px; border:1px solid #4A4540; border-radius:10px; color:#fff; font-size:15px; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .gp-periodo input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+  .gp-xlsx { height:44px; padding:0 16px; display:inline-flex; align-items:center; gap:8px; background:var(--accent); color:#fff; border:none; border-radius:10px; font-family:var(--font); font-size:15px; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .gp-xlsx:active { filter:brightness(.92); }
+  .gp-sair { height:44px; padding:0 16px; background:transparent; color:#fff; border:1px solid #4A4540; border-radius:10px; font-family:var(--font); font-size:15px; font-weight:600; cursor:pointer; }
+  .gp-sair:active { background:#3A3632; }
+  .gp-body { width:100%; max-width:1280px; margin:0 auto; padding:20px 24px 32px; }
+
+  .gp-stats { display:grid; grid-template-columns:repeat(6, 1fr); gap:12px; margin-bottom:16px; }
+  .gp-stat { padding:14px 16px; background:var(--card-bg); border:1px solid var(--border); border-radius:14px; min-width:0; }
+  .gp-stat-lbl { font-size:13px; font-weight:600; color:var(--muted-2); }
+  .gp-stat-num { margin-top:4px; font-family:var(--font-cond); font-size:30px; font-weight:700; line-height:1.1; }
+  .gp-stat-num small { font-size:16px; font-weight:600; color:#8F8A82; }
+  .gp-bar { height:6px; margin-top:10px; background:#EAE6DF; border-radius:3px; overflow:hidden; }
+  .gp-bar i { display:block; height:100%; background:#2B2825; border-radius:3px; }
+  .gp-bar.completo i { background:#2D5F14; }
+  .gp-stat.ok { background:var(--st-ok-bg); border-color:transparent; color:var(--st-ok-fg); }
+  .gp-stat.res { background:var(--st-res-bg); border-color:transparent; color:var(--st-res-fg); }
+  .gp-stat.nok { background:var(--st-nok-bg); border-color:transparent; color:var(--st-nok-fg); }
+  .gp-stat.corr { background:var(--header-bg); border-color:transparent; color:#fff; }
+  .gp-stat.ok .gp-stat-lbl, .gp-stat.res .gp-stat-lbl, .gp-stat.nok .gp-stat-lbl { color:inherit; }
+  .gp-stat.corr .gp-stat-lbl { color:#CFCAC2; }
+
+  .gp-cols { display:grid; grid-template-columns:minmax(0, 1fr) 340px; gap:16px; align-items:start; margin-bottom:16px; }
+  .gestor-card { margin-bottom:0; padding:16px; background:var(--card-bg); border:1px solid var(--border); border-radius:14px; }
+  .gp-body > .gestor-card { margin-bottom:16px; }
+  .gp-card-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px 12px; margin-bottom:12px; }
+  .gestor-card h3 { margin:0; font-family:var(--font-cond); font-size:18px; font-weight:700; color:var(--ink); text-transform:none; letter-spacing:0; }
+  .gp-chips { display:inline-flex; gap:4px; padding:4px; background:var(--bg); border-radius:999px; }
+  .gp-chip { height:32px; padding:0 14px; background:transparent; border:none; border-radius:999px; color:#3B3733; font-family:var(--font); font-size:14px; font-weight:600; cursor:pointer; }
+  .gp-chip.ativo { background:var(--header-bg); color:#fff; }
+
   .gestor-table-wrap { overflow-x:auto; }
-  .gestor-table { width:100%; border-collapse:collapse; font-size:12px; }
-  .gestor-table thead tr { background:#1a1a18; }
-  .gestor-table th { color:#fff; padding:9px 10px; text-align:center; font-weight:600; white-space:nowrap; font-size:11px; letter-spacing:.3px; }
-  .gestor-table th:nth-child(2) { text-align:left; }
-  .gestor-table td { padding:8px 10px; border-bottom:1px solid #e8e8e6; text-align:center; color:#222; font-size:12px; }
-  .gestor-table td:nth-child(2) { text-align:left; font-weight:500; }
-  .gestor-table tr:hover td { background:#fafaf8; }
-  .gestor-table .sem-dados td { color:#aaa; font-style:italic; }
-  .gestor-export-btn { background:#CC0000; color:#fff; border:none; border-radius:8px; padding:12px; font-size:14px; font-weight:700; cursor:pointer; width:100%; margin-top:16px; letter-spacing:.3px; }
+  .gestor-table { width:100%; min-width:760px; border-collapse:collapse; }
+  .gestor-table th { padding:10px 12px; text-align:left; font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted-2); border-bottom:1px solid var(--border); white-space:nowrap; }
+  .gestor-table th.n, .gestor-table td.n { text-align:center; }
+  .gestor-table td { height:52px; padding:0 12px; border-bottom:1px solid #EEEAE3; font-size:14px; vertical-align:middle; }
+  .gestor-table tr.sem-dados td { background:#FFF8EC; }
+  .gestor-table td.sem { color:var(--st-res-fg); font-weight:600; }
+  .gp-cli { color:var(--muted); }
+  .gp-uni { font-weight:600; }
+  .gp-prog { display:flex; align-items:center; gap:8px; min-width:120px; }
+  .gp-prog .gp-bar { flex:1; min-width:56px; margin:0; }
+  .gp-prog span { font-size:13px; font-variant-numeric:tabular-nums; color:var(--muted-2); white-space:nowrap; }
+  .gp-na { color:var(--muted); font-size:13px; }
+  .gp-n-ok { color:#2D5F14; font-weight:600; }
+  .gp-n-res { color:#8A4B00; font-weight:600; }
+  .gp-n-nok { color:#A11A12; font-weight:600; }
+  .gp-n-corr { color:#000; font-weight:700; }
+
+  #gestor-bloqueadas-list { max-height:560px; overflow-y:auto; }
+  .gp-conf-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #EEEAE3; }
+  .gp-conf-item:last-child { border-bottom:none; }
+  .gp-conf-num { width:40px; height:40px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:8px; background:var(--st-ok-bg); color:var(--st-ok-fg); font-family:var(--font-cond); font-size:17px; font-weight:700; }
+  .gp-conf-num.longo { font-size:11px; }
+  .gp-conf-info { flex:1; min-width:0; }
+  .gp-conf-nome { font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .gp-conf-sub { margin-top:1px; font-size:13px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .gp-desb { height:36px; padding:0 12px; background:#fff; color:var(--ink); border:1px solid var(--border-strong); border-radius:8px; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .gp-desb:active { background:var(--bg); }
+  .gp-vazio { padding:20px 0; text-align:center; font-size:14px; color:var(--muted); }
+
+  .gestor-controls { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+  .gestor-controls .btn-carregar { height:40px; padding:0 20px; background:var(--accent); color:#fff; border:none; border-radius:10px; font-family:var(--font); font-size:14px; font-weight:700; cursor:pointer; white-space:nowrap; }
+
+  @media (max-width: 1023px) {
+    .gp-cols { grid-template-columns:minmax(0, 1fr); }
+    .gp-stats { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 639px) {
+    .gp-header { padding:12px 16px; }
+    .gp-body { padding:16px; }
+    .gp-stats { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+    .gp-stat-num { font-size:26px; }
+  }
 
   /* DOCA BLOQUEADA */
   .doca-card.locked .doca-card-header { background: #f0f9eb; border-bottom-color: #c5e0a0; }
@@ -713,17 +766,60 @@ if (ENV === 'dev') {
 
 <!-- GESTOR PANEL -->
 <div id="gestor-panel">
-  <div class="gestor-header">
-    <div>
-      <h2>Área do Gestor</h2>
-      <div class="g-sub">Checklist Preventiva — Belcito</div>
+  <div class="gp-header">
+    <div class="gp-brand">
+      <img src="icon.png" alt="Belcito" />
+      <div>
+        <h2>Área do Gestor</h2>
+        <p>Checklist Preventiva</p>
+      </div>
     </div>
-    <button class="gestor-sair" onclick="fecharGestor()">✕ Sair</button>
+    <div class="gp-actions">
+      <label class="gp-periodo" title="Mês de referência">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+        <span id="gestor-mes-label">Selecione o mês</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        <input type="month" id="gestor-mes" aria-label="Mês de referência" onclick="try{this.showPicker()}catch(e){}" onchange="gestorMesMudou()" />
+      </label>
+      <button class="gp-xlsx" id="gestor-export-btn" onclick="exportGestorXLSX()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>
+        <span id="gestor-export-txt">XLSX consolidado</span>
+      </button>
+      <button class="gp-sair" onclick="fecharGestor()">Sair</button>
+    </div>
   </div>
-  <div class="gestor-body">
+  <div class="gp-body">
 
-    <div class="gestor-card">
-      <h3>Usuários</h3>
+    <div class="gp-stats" id="gestor-stats"></div>
+
+    <div class="gp-cols" id="gestor-tabela-wrap" style="display:none;">
+      <section class="gestor-card gp-unidades">
+        <div class="gp-card-head">
+          <h3>Unidades</h3>
+          <div class="gp-chips" id="gestor-chips"></div>
+          <select id="gestor-filtro-cliente" onchange="filtrarGestorTabela()" hidden></select>
+        </div>
+        <div class="gestor-table-wrap">
+          <table class="gestor-table">
+            <thead>
+              <tr>
+                <th>Cliente</th><th>Unidade</th><th>Portas</th><th>Niveladoras</th>
+                <th class="n">Ok</th><th class="n">Ressalva</th><th class="n">Não Ok</th><th class="n">Corretivas</th>
+              </tr>
+            </thead>
+            <tbody id="gestor-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="gestor-card gp-conf" id="gestor-bloqueadas-wrap">
+        <div class="gp-card-head"><h3>Docas confirmadas</h3></div>
+        <div id="gestor-bloqueadas-list"></div>
+      </section>
+    </div>
+
+    <section class="gestor-card">
+      <div class="gp-card-head"><h3>Usuários</h3></div>
       <div id="usuarios-lista" class="usr-lista"></div>
       <div class="gestor-controls usr-form">
         <input type="email" id="usr-email" placeholder="e-mail Google" autocomplete="off" />
@@ -731,51 +827,7 @@ if (ENV === 'dev') {
         <select id="usr-papel"><option value="tecnico">Técnico</option><option value="gestor">Gestor</option></select>
         <button class="btn-carregar" onclick="usuarioAdicionar()">Adicionar</button>
       </div>
-    </div>
-
-    <div class="gestor-card">
-      <h3>Período</h3>
-      <div class="gestor-controls">
-        <div class="field" style="flex:1;min-width:160px;">
-          <label>Mês de referência</label><br>
-          <input type="month" id="gestor-mes" />
-        </div>
-        <button class="btn-carregar" onclick="gestorCarregar()">Carregar dados</button>
-      </div>
-    </div>
-
-    <div id="gestor-tabela-wrap" style="display:none;">
-      <div class="gestor-stats" id="gestor-stats"></div>
-
-      <div class="gestor-card">
-        <h3>Unidades</h3>
-        <div style="margin-bottom:10px;">
-          <select id="gestor-filtro-cliente" onchange="filtrarGestorTabela()" style="padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;background:#f4f4f2;color:#1a1a18;">
-            <option value="">Todos os clientes</option>
-            <option value="Shopee">Shopee</option>
-            <option value="Alcon">Alcon</option>
-          </select>
-        </div>
-        <div class="gestor-table-wrap">
-          <table class="gestor-table">
-            <thead>
-              <tr>
-                <th>Cliente</th><th>Unidade</th><th>Porta</th><th>Niv</th>
-                <th>✓ Ok</th><th>⚠ Ressalvas</th><th>✗ Não Ok</th><th>Corretivas</th>
-              </tr>
-            </thead>
-            <tbody id="gestor-table-body"></tbody>
-          </table>
-        </div>
-        <button class="gestor-export-btn" id="gestor-export-btn" onclick="exportGestorXLSX()">📊 Exportar XLSX Consolidado</button>
-      </div>
-
-      <div class="gestor-card" id="gestor-bloqueadas-wrap" style="display:none;">
-        <h3>Docas Confirmadas 🔒</h3>
-        <div id="gestor-bloqueadas-list"></div>
-      </div>
-
-    </div>
+    </section>
 
   </div>
 </div>
@@ -2471,12 +2523,21 @@ async function exportXLSX() {
 let gestorDados = {};
 let gestorExiste = {};
 
+const MESES_EXT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const mesExtenso = mk => /^\d{4}-\d{2}$/.test(mk) ? MESES_EXT[parseInt(mk.slice(5), 10) - 1] + ' ' + mk.slice(0, 4) : 'Selecione o mês';
+const gestorAtualizaMes = () => { document.getElementById('gestor-mes-label').textContent = mesExtenso(document.getElementById('gestor-mes').value); };
+
 function abrirGestor() {
   if (!ehGestor()) return;
   document.getElementById('gestor-mes').value = monthKey();
+  gestorAtualizaMes();
   document.getElementById('gestor-panel').style.display = 'flex';
   usuariosCarregar();
+  gestorCarregar();
 }
+
+// escolher o mês no chip do header carrega os dados desse mês (mesma função do antigo botão "Carregar dados")
+function gestorMesMudou() { gestorAtualizaMes(); gestorCarregar(); }
 
 // ── USUÁRIOS (coleção usuarios, ID = e-mail em minúsculas) ───────────────────
 let usuariosLista = [];
@@ -2548,7 +2609,6 @@ async function usuarioAlternar(email) {
 function fecharGestor() {
   document.getElementById('gestor-panel').style.display = 'none';
   document.getElementById('gestor-tabela-wrap').style.display = 'none';
-  document.getElementById('gestor-bloqueadas-wrap').style.display = 'none';
   gestorDados = {};
 }
 
@@ -2557,20 +2617,37 @@ async function gestorCarregar() {
   if (!mes) { showToast('Selecione um mês'); return; }
   setSyncStatus('Carregando...');
   const keys = Object.keys(UNITS).filter(k => k !== TESTE_KEY);
-  const snaps = await Promise.all(keys.map(k => db.collection('checklists').doc(k + '_' + mes).get()));
+  let snaps;
+  try { snaps = await Promise.all(keys.map(k => db.collection('checklists').doc(k + '_' + mes).get())); }
+  catch (e) { console.error('gestorCarregar:', e); setSyncStatus('Erro'); showToast('Não foi possível carregar os dados'); return; }
   gestorDados = {}; gestorExiste = {};
   snaps.forEach((snap, i) => {
     gestorExiste[keys[i]] = snap.exists;
     gestorDados[keys[i]] = snap.exists ? snap.data() : { dataGlobal:'', respGlobal:'', obsGeral:'', docas:[] };
   });
   document.getElementById('gestor-filtro-cliente').value = '';
-  document.getElementById('gestor-tabela-wrap').style.display = 'block';
+  document.getElementById('gestor-tabela-wrap').style.display = 'grid';
   gestorRender();
   setSyncStatus('');
 }
 
+// Chips de cliente (a partir dos clientes reais de UNITS, sem a unidade de teste); o <select> oculto guarda o filtro.
+function gestorChips() {
+  const clientes = [...new Set(Object.keys(UNITS).filter(k => k !== TESTE_KEY).map(k => UNITS[k].cliente))];
+  const sel = document.getElementById('gestor-filtro-cliente');
+  if (sel.options.length !== clientes.length + 1)
+    sel.innerHTML = '<option value="">Todos</option>' + clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  document.getElementById('gestor-chips').innerHTML = ['', ...clientes].map(c =>
+    `<button class="gp-chip ${sel.value === c ? 'ativo' : ''}" data-cliente="${esc(c)}" onclick="gestorFiltrarCliente(this.dataset.cliente)">${c ? esc(c) : 'Todos'}</button>`).join('');
+}
+function gestorFiltrarCliente(c) { document.getElementById('gestor-filtro-cliente').value = c; gestorRender(); }
+
+const gpPct = (a, b) => b ? Math.round(a / b * 100) : 0;
+const gpProg = (a, b) => `<div class="gp-prog"><div class="gp-bar ${b && a === b ? 'completo' : ''}"><i style="width:${gpPct(a, b)}%"></i></div><span>${a}/${b}</span></div>`;
+
 // Desenha cards de resumo, tabela e docas confirmadas respeitando o filtro de cliente.
 function gestorRender() {
+  gestorChips();
   const filtro = document.getElementById('gestor-filtro-cliente').value;
   const tbody = document.getElementById('gestor-table-body');
   tbody.innerHTML = '';
@@ -2599,24 +2676,27 @@ function gestorRender() {
     }
     const corr = res + nok; gCorr += corr;
     const tr = document.createElement('tr');
-    if (!doc) tr.className = 'sem-dados';
-    tr.innerHTML = `<td>${u.cliente}</td><td>${!doc ? '⚠ ' : ''}${u.unidade}</td>`
-      + `<td>${doc ? filledP+'/'+totalP : '—'}</td>`
-      + `<td>${doc ? (totalN ? filledN+'/'+totalN : 'N/A') : '—'}</td>`
-      + `<td>${doc ? ok   : '—'}</td>`
-      + `<td>${doc ? res  : '—'}</td>`
-      + `<td>${doc ? nok  : '—'}</td>`
-      + `<td>${doc ? corr : '—'}</td>`;
+    const inicio = `<td class="gp-cli">${esc(u.cliente)}</td><td class="gp-uni">${esc(u.unidade)}</td>`;
+    if (!doc) {
+      tr.className = 'sem-dados';
+      tr.innerHTML = inicio + '<td class="sem" colspan="6">Sem dados no mês</td>';
+    } else {
+      tr.innerHTML = inicio
+        + `<td>${gpProg(filledP, totalP)}</td>`
+        + `<td>${totalN ? gpProg(filledN, totalN) : '<span class="gp-na">N/A</span>'}</td>`
+        + `<td class="n gp-n-ok">${ok}</td><td class="n gp-n-res">${res}</td><td class="n gp-n-nok">${nok}</td><td class="n gp-n-corr">${corr}</td>`;
+    }
     tbody.appendChild(tr);
   });
-  document.getElementById('gestor-export-btn').textContent = '📊 Exportar XLSX ' + (filtro || 'Consolidado');
+  document.getElementById('gestor-export-txt').textContent = 'XLSX ' + (filtro || 'consolidado');
+  const barra = (a, b) => `<div class="gp-bar"><i style="width:${gpPct(a, b)}%"></i></div>`;
   document.getElementById('gestor-stats').innerHTML =
-    `<div class="g-stat"><div class="g-num">${gFilledP}/${gTotalP}</div><div class="g-lbl">Portas</div></div>`
-    +`<div class="g-stat"><div class="g-num">${gFilledN}/${gTotalN}</div><div class="g-lbl">Niveladoras</div></div>`
-    +`<div class="g-stat g-ok"><div class="g-num">${gOk}</div><div class="g-lbl">Preventiva Ok</div></div>`
-    +`<div class="g-stat g-res"><div class="g-num">${gRes}</div><div class="g-lbl">Com Ressalvas</div></div>`
-    +`<div class="g-stat g-nok"><div class="g-num">${gNok}</div><div class="g-lbl">Não Ok</div></div>`
-    +`<div class="g-stat g-corr"><div class="g-num">${gCorr}</div><div class="g-lbl">Corretivas</div></div>`;
+    `<div class="gp-stat"><div class="gp-stat-lbl">Portas</div><div class="gp-stat-num">${gFilledP}<small>/${gTotalP}</small></div>${barra(gFilledP, gTotalP)}</div>`
+    +`<div class="gp-stat"><div class="gp-stat-lbl">Niveladoras</div><div class="gp-stat-num">${gFilledN}<small>/${gTotalN}</small></div>${barra(gFilledN, gTotalN)}</div>`
+    +`<div class="gp-stat ok"><div class="gp-stat-lbl">Preventiva Ok</div><div class="gp-stat-num">${gOk}</div></div>`
+    +`<div class="gp-stat res"><div class="gp-stat-lbl">Com Ressalvas</div><div class="gp-stat-num">${gRes}</div></div>`
+    +`<div class="gp-stat nok"><div class="gp-stat-lbl">Não Ok</div><div class="gp-stat-num">${gNok}</div></div>`
+    +`<div class="gp-stat corr"><div class="gp-stat-lbl">Corretivas</div><div class="gp-stat-num">${gCorr}</div></div>`;
   gestorRenderBloqueadas();
 }
 
@@ -2630,20 +2710,20 @@ function gestorRenderBloqueadas() {
     if (!doc || !doc.docas || (filtro && UNITS[key].cliente !== filtro)) return;
     const u = UNITS[key];
     doc.docas.filter(d => d.locked).forEach(d => {
-      items.push({ key, label: u.cliente + ' — ' + u.unidade, doca: d.num, resp: d.resp, data: d.data });
+      items.push({ key, unidade: u.unidade, doca: d.num, resp: d.resp, data: d.data });
     });
   });
-  const wrap = document.getElementById('gestor-bloqueadas-wrap');
+  items.sort((a, b) => (b.data || '').localeCompare(a.data || '')); // mais recentes primeiro
   const list = document.getElementById('gestor-bloqueadas-list');
-  if (!items.length) { wrap.style.display = 'none'; return; }
-  wrap.style.display = 'block';
+  if (!items.length) { list.innerHTML = '<p class="gp-vazio">Nenhuma doca confirmada</p>'; return; }
   list.innerHTML = items.map(it => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee;">
-      <div>
-        <div style="font-size:12px;font-weight:600;color:#1a1a18;">${esc(it.label)} — Doca ${esc(it.doca)}</div>
-        <div style="font-size:11px;color:#777;">Confirmada por ${esc(it.resp) || '—'} em ${fmtDate(it.data)||'—'}</div>
+    <div class="gp-conf-item">
+      <div class="gp-conf-num ${String(it.doca).length > 3 ? 'longo' : ''}">${esc(it.doca)}</div>
+      <div class="gp-conf-info">
+        <div class="gp-conf-nome">${esc(it.unidade)}</div>
+        <div class="gp-conf-sub">${esc(it.resp) || '—'} · ${fmtDate(it.data) || '—'}</div>
       </div>
-      <button data-key="${esc(it.key)}" data-doca="${esc(it.doca)}" onclick="gestorDesbloquear(this.dataset.key, this.dataset.doca)" style="background:#CC0000;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;">Desbloquear</button>
+      <button class="gp-desb" data-key="${esc(it.key)}" data-doca="${esc(it.doca)}" onclick="gestorDesbloquear(this.dataset.key, this.dataset.doca)">Desbloquear</button>
     </div>
   `).join('');
 }
