@@ -452,6 +452,7 @@
   .locked-badge { display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; color:#3B6D11; background:#EAF3DE; border:1px solid #639922; border-radius:12px; padding:2px 7px; }
   .confirm-btn { width:100%; margin-top:10px; padding:11px; background:#3B6D11; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; font-family:var(--font); cursor:pointer; letter-spacing:.2px; }
   .confirm-btn:active { background:#2a5009; transform:scale(0.98); }
+  .confirm-pend { margin-top:10px; padding:10px 12px; border:1px dashed var(--amber-border); border-radius:8px; font-size:12px; font-weight:600; color:var(--amber); background:var(--amber-bg); }
   .doca-locked-info { background:#EAF3DE; border:1px solid #639922; border-radius:8px; padding:9px 12px; margin-top:8px; font-size:12px; color:#3B6D11; }
 </style>
 </head>
@@ -1505,11 +1506,13 @@ function init() {
     const val = this.value;
     state.forEach(d => { if (!d.dataManual) d.data = val; });
     scheduleSave();
+    state.forEach(refreshConfirm);
   });
   document.getElementById('resp-global').addEventListener('input', function() {
     const val = this.value;
     state.forEach(d => { if (!d.respManual) d.resp = val; });
     scheduleSave();
+    state.forEach(refreshConfirm);
   });
   document.getElementById('obs-geral').addEventListener('input', scheduleSave);
 
@@ -1632,9 +1635,6 @@ function buildCard(d) {
   const nLabel = d.nivel  ? STATUS_INFO[d.nivel].label  : '—';
   const pPill  = d.portao ? STATUS_INFO[d.portao].pill  : 'pill-vazio';
   const nPill  = d.nivel  ? STATUS_INFO[d.nivel].pill   : 'pill-vazio';
-  const canConfirm = d.portao && d.nivel && d.data && d.resp;
-  const dataFmt = fmtDate(d.data) || '—';
-
   wrap.innerHTML = `
     <div class="doca-card-header" onclick="toggleCard(${d.id})">
       <div class="doca-info">
@@ -1665,19 +1665,49 @@ function buildCard(d) {
         </div>
         <div class="field">
           <label>Responsável</label>
-          <input type="text" value="${d.resp||''}" ${d.locked ? 'disabled' : ''} placeholder="Idem global" onblur="setDocaField(${d.id},'resp',this.value,'respManual')" />
+          <input type="text" id="resp-${d.id}" value="${d.resp||''}" ${d.locked ? 'disabled' : ''} placeholder="${respPlaceholder().replace(/"/g, '&quot;')}" onblur="setDocaField(${d.id},'resp',this.value,'respManual')" />
         </div>
       </div>
-      ${d.locked
-        ? `<div class="doca-locked-info">🔒 Confirmada por <strong>${d.resp||'—'}</strong> em <strong>${dataFmt}</strong></div>`
-        : (canConfirm ? `<button class="confirm-btn" onclick="confirmarDoca(${d.id})">✓ Confirmar Doca ${d.num}</button>` : '')
-      }
+      <div id="conf-${d.id}">${confirmHtml(d)}</div>
       ${!d.locked ? `<div style="margin-top:8px;text-align:right;">
         <button onclick="removeDoca(${d.id})" style="background:none;border:none;color:#A32D2D;font-size:12px;cursor:pointer;font-family:var(--font);">✕ Remover doca</button>
       </div>` : ''}
     </div>
   `;
   return wrap;
+}
+
+// ── CONFIRMAÇÃO DA DOCA ───────────────────────────────────────────────────────
+const respGlobal = () => document.getElementById('resp-global').value.trim();
+const respPlaceholder = () => respGlobal() ? 'Idem: ' + respGlobal() : 'Nome do técnico';
+const temProblema = v => v === 'ressalva' || v === 'naook';
+
+function pendencias(d) {
+  const p = [];
+  [['portao', 'Porta'], ['nivel', 'Niveladora']].forEach(([campo, nome]) => {
+    if (!d[campo]) p.push('status da ' + nome);
+    else if (temProblema(d[campo]) && !(d[campo + 'Obs'] || '').trim()) p.push('descrição da ' + nome);
+  });
+  if (!d.data) p.push('Data');
+  if (!(d.resp || respGlobal())) p.push('Responsável');
+  return p;
+}
+
+function confirmHtml(d) {
+  if (d.locked)
+    return `<div class="doca-locked-info">🔒 Confirmada por <strong>${d.resp||'—'}</strong> em <strong>${fmtDate(d.data)||'—'}</strong></div>`;
+  const p = pendencias(d);
+  return p.length
+    ? `<div class="confirm-pend">Falta: ${p.join(', ')}</div>`
+    : `<button class="confirm-btn" onclick="confirmarDoca(${d.id})">✓ Confirmar Doca ${d.num}</button>`;
+}
+
+// Atualiza só a área de confirmação (sem renderAll, que roubaria o foco/toque do campo em edição).
+function refreshConfirm(d) {
+  const c = document.getElementById('conf-' + d.id);
+  if (c) c.innerHTML = confirmHtml(d);
+  const r = document.getElementById('resp-' + d.id);
+  if (r) r.placeholder = respPlaceholder();
 }
 
 function buildStatusBlock(d, campo, label, habilitado) {
@@ -1782,7 +1812,7 @@ function setStatus(id, campo, val) {
 
 function setObs(id, campo, val) {
   const d = state.find(x => x.id === id);
-  if (d) { d[campo] = val; scheduleSave(); }
+  if (d) { d[campo] = val; scheduleSave(); refreshConfirm(d); }
 }
 
 function setCorretivaField(id, campo, val) {
@@ -1796,6 +1826,7 @@ function setDocaField(id, campo, val, manualFlag) {
   d[campo] = val;
   d[manualFlag] = true;
   scheduleSave();
+  refreshConfirm(d);
 }
 
 function removeDoca(id) {
@@ -1809,7 +1840,8 @@ function removeDoca(id) {
 
 function confirmarDoca(id) {
   const d = state.find(x => x.id === id);
-  if (!d) return;
+  if (!d || d.locked || pendencias(d).length) return;
+  d.resp = d.resp || respGlobal();
   d.locked = true;
   d.open = false;
   renderAll();
