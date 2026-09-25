@@ -1,10 +1,12 @@
-const CACHE = 'belcito-v4';
+// Mesmo arquivo nos dois sites: o ambiente vem da URL do próprio SW.
+const DEV = ['localhost', '127.0.0.1'].includes(self.location.hostname) || self.location.pathname.includes('checklist-preventiva-dev');
+const CACHE = DEV ? 'belcito-dev-v1' : 'belcito-v4';
 const ASSETS = [
-  '/checklist-preventiva/',
-  '/checklist-preventiva/index.html',
-  '/checklist-preventiva/manifest.json',
-  '/checklist-preventiva/icon.png',
-  '/checklist-preventiva/icon-maskable.png',
+  './',
+  './index.html',
+  './manifest.json',
+  './icon.png',
+  './icon-maskable.png',
   // libs de CDN: precisam estar em cache pro app abrir sem rede
   'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',
   'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',

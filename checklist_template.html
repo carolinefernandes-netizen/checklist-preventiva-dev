@@ -632,6 +632,20 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ── AMBIENTE: dev (localhost ou site -dev) | prod ──────────────────────────
+const ENV = (['localhost', '127.0.0.1'].includes(location.hostname) || location.pathname.includes('checklist-preventiva-dev')) ? 'dev' : 'prod';
+if (ENV === 'dev') {
+  document.title = '[DEV] ' + document.title;
+  const faixa = document.createElement('div');
+  faixa.textContent = 'AMBIENTE DE TESTE';
+  faixa.style.cssText = 'position:fixed;top:0;left:0;right:0;height:24px;background:#FFD60A;color:#1a1a18;font:700 12px/24px Inter,system-ui,sans-serif;letter-spacing:.5px;text-align:center;z-index:300;';
+  document.body.prepend(faixa);
+  document.body.style.paddingTop = '24px';
+  const ajuste = document.createElement('style');
+  ajuste.textContent = '.page-header{top:24px}#gestor-panel{top:24px}';
+  document.head.appendChild(ajuste);
+}
+
 // ── LOGOS (base64) ──────────────────────────────────────────────────────────
 const LOGOS = {
   belcito: document.querySelector('.logo-belcito').src,
@@ -1462,14 +1476,23 @@ let state = [];
 let nextId = 1;
 
 // ── FIREBASE ──────────────────────────────────────────────────────────────────
-firebase.initializeApp({
+const firebaseConfigProd = {
   apiKey: "AIzaSyDRucfu_EmrsAUQJ9pNLUMmEc1HOsinYI8",
   authDomain: "checklist-de-preventiva.firebaseapp.com",
   projectId: "checklist-de-preventiva",
   storageBucket: "checklist-de-preventiva.firebasestorage.app",
   messagingSenderId: "488059283386",
   appId: "1:488059283386:web:e27e1a28dc8c11fd9a5f83"
-});
+};
+const firebaseConfigDev = {
+  apiKey: "AIzaSyBPxVph6kWpvDoqhQqQZD-jSD1-YTOOK_c",
+  authDomain: "checklist-dev-5b0e2.firebaseapp.com",
+  projectId: "checklist-dev-5b0e2",
+  storageBucket: "checklist-dev-5b0e2.firebasestorage.app",
+  messagingSenderId: "562279604116",
+  appId: "1:562279604116:web:4e731d2844ffc19c877981"
+};
+firebase.initializeApp(ENV === 'dev' ? firebaseConfigDev : firebaseConfigProd);
 const db = firebase.firestore();
 db.enablePersistence({ synchronizeTabs: true }).catch(e => console.warn('Persistência offline indisponível:', e.code));
 let unsubSnapshot = null;
@@ -2295,7 +2318,7 @@ function showToast(msg) {
 init();
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/checklist-preventiva/sw.js');
+  navigator.serviceWorker.register('./sw.js');
 }
 </script>
 </body>
