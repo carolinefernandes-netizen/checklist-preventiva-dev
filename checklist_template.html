@@ -595,7 +595,7 @@
             <tbody id="gestor-table-body"></tbody>
           </table>
         </div>
-        <button class="gestor-export-btn" onclick="exportGestorXLSX()">📊 Exportar XLSX Consolidado</button>
+        <button class="gestor-export-btn" id="gestor-export-btn" onclick="exportGestorXLSX()">📊 Exportar XLSX Consolidado</button>
       </div>
 
       <div class="gestor-card" id="gestor-bloqueadas-wrap" style="display:none;">
@@ -2213,6 +2213,7 @@ function gestorRender() {
       + `<td>${doc ? corr : '—'}</td>`;
     tbody.appendChild(tr);
   });
+  document.getElementById('gestor-export-btn').textContent = '📊 Exportar XLSX ' + (filtro || 'Consolidado');
   document.getElementById('gestor-stats').innerHTML =
     `<div class="g-stat"><div class="g-num">${gFilledP}/${gTotalP}</div><div class="g-lbl">Portas</div></div>`
     +`<div class="g-stat"><div class="g-num">${gFilledN}/${gTotalN}</div><div class="g-lbl">Niveladoras</div></div>`
@@ -2266,8 +2267,10 @@ async function exportGestorXLSX() {
   if (!Object.keys(gestorDados).length) { showToast('Carregue os dados primeiro'); return; }
   const mes = document.getElementById('gestor-mes').value;
   setSyncStatus('Gerando XLSX...');
+  const filtro = document.getElementById('gestor-filtro-cliente').value;
+  const keys = Object.keys(gestorDados).filter(k => !filtro || UNITS[k].cliente === filtro);
+  if (!keys.length) { setSyncStatus(''); showToast('Nenhuma unidade para exportar'); return; }
   const wb = new ExcelJS.Workbook();
-  const keys = Object.keys(gestorDados);
   const listas = await Promise.all(keys.map(k =>
     db.collection('checklists').doc(k + '_' + mes).collection('fotos').get().then(s => s.docs.map(x => x.data()))));
   keys.forEach((key, i) => buildWS(wb, key, gestorDados[key], listas[i]));
@@ -2275,9 +2278,10 @@ async function exportGestorXLSX() {
   const blob = new Blob([buffer], { type:'application/octet-stream' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'preventiva_consolidado_' + mes + '.xlsx'; a.click();
+  const nome = filtro ? filtro.toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g, '') : 'consolidado';
+  a.href = url; a.download = 'preventiva_' + nome + '_' + mes + '.xlsx'; a.click();
   setSyncStatus('');
-  showToast('XLSX consolidado exportado!');
+  showToast('XLSX ' + (filtro || 'consolidado') + ' exportado!');
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────
