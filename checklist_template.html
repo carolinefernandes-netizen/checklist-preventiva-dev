@@ -24,6 +24,9 @@ if (ENV === 'dev') {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -35,37 +38,57 @@ if (ENV === 'dev') {
     --gray: #444441; --gray-light: #F1EFE8; --gray-border: #B4B2A9;
     --text: #2C2C2A; --text-muted: #888780; --text-light: #5F5E5A;
     --surface: #fff; --surface-1: #F9F8F5; --surface-2: #F1EFE8;
-    --border: #D3D1C7; --radius: 10px;
-    --font: -apple-system, 'Segoe UI', Arial, sans-serif;
+    --border: #DDD8D0; --radius: 10px;
+    --font: 'Barlow', -apple-system, 'Segoe UI', Arial, sans-serif;
+    --font-cond: 'Barlow Semi Condensed', 'Barlow', -apple-system, 'Segoe UI', Arial, sans-serif;
+    /* redesenho: tokens */
+    --bg: #F3F1ED; --ink: #1F1D1B; --header-bg: #2B2825; --header-text: #FFFFFF;
+    --accent: #C8261B; --muted: #6B665F; --muted-2: #57524B; --border-strong: #CFC9BF; --card-bg: #FFFFFF;
+    --st-ok-bg: #E4F0DA; --st-ok-fg: #2D5F14;
+    --st-res-bg: #FBEBD0; --st-res-fg: #8A4B00;
+    --st-nok-bg: #FBE1DE; --st-nok-fg: #A11A12;
+    --st-na-bg: #E9EBEE; --st-na-fg: #4A5563;
+    --st-pend-bg: #FFFFFF; --st-pend-fg: #7A746B;
     --belcito-red: #CC0000; --belcito-orange: #FF9900;
   }
 
   body {
     font-family: var(--font);
-    background: var(--surface-1);
-    color: var(--text);
+    background: var(--bg);
+    color: var(--ink);
     min-height: 100vh;
     padding-bottom: 2rem;
   }
 
   /* HEADER */
   .page-header {
-    background: #1a1a18;
-    color: #fff;
-    padding: 0.85rem 1rem;
-    position: sticky;
+    background: var(--header-bg);
+    color: var(--header-text);
+    padding: 14px 16px 16px;
+    position: static;
     top: 0;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
   }
-  .page-header .logo-belcito, .page-header .logo-cliente { flex-shrink: 0; }
-  .page-header img { height: 45px; max-width: 98px; object-fit: contain; }
-  .page-header .header-text { text-align: center; flex: 1; min-width: 0; padding: 0 6px; }
-  .page-header h1 { font-size: 14px; font-weight: 600; line-height: 1.2; }
-  .page-header p { font-size: 11px; color: #aaa; margin-top: 2px; }
+  .hdr-row { display: flex; align-items: center; gap: 10px; }
+  .hdr-logo { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: #fff; }
+  .hdr-info { flex: 1; min-width: 0; }
+  .page-header h1 { font-family: var(--font-cond); font-size: 19px; font-weight: 700; line-height: 1.15; }
+  .page-header #header-sub { font-size: 13px; color: #CFCAC2; margin-top: 2px; line-height: 1.25; }
+  .sync-badge { display: none; align-items: center; gap: 6px; flex-shrink: 0; background: #3A3632; color: #BFE3A8; border-radius: 999px; padding: 5px 10px 5px 9px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .sync-badge::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #7CC456; }
+  .sync-badge[data-estado="busy"] { color: #F0D9A8; }
+  .sync-badge[data-estado="busy"]::before { background: #E0A93A; }
+  .sync-badge[data-estado="erro"] { color: #F5B8B2; }
+  .sync-badge[data-estado="erro"]::before { background: #E4574C; }
+  .hdr-gestor { width: 44px; height: 44px; flex-shrink: 0; display: none; align-items: center; justify-content: center; border-radius: 10px; border: 1px solid #4A4540; background: transparent; color: #fff; cursor: pointer; }
+  .hdr-gestor:active { background: #3A3632; }
+  .hdr-progress { margin-top: 14px; }
+  .hdr-progress-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; color: #CFCAC2; margin-bottom: 6px; }
+  #progress-pct { font-family: var(--font-cond); font-size: 22px; font-weight: 700; color: #fff; line-height: 1; }
+  .page-header .progress-bar { height: 8px; background: #45403B; border-radius: 999px; overflow: hidden; }
+  .page-header .progress-fill { background: #7CC456; border-radius: 999px; }
+  .btn-proxima { width: 100%; height: 44px; margin-top: 14px; border: none; border-radius: 10px; background: var(--accent); color: #fff; font-family: var(--font); font-size: 15px; font-weight: 600; display: none; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+  .btn-proxima:active { filter: brightness(.92); }
+  .btn-proxima:disabled { background: #3A3632; color: #BFE3A8; cursor: default; filter: none; }
 
   /* BODY */
   .container { max-width: 600px; margin: 0 auto; padding: 1rem; }
@@ -427,9 +450,9 @@ if (ENV === 'dev') {
   .toast.show { opacity: 1; }
 
   /* Gestor */
-  .user-bar { display:flex; justify-content:center; align-items:center; gap:6px; margin-top:2px; font-size:10px; color:#aaa; }
-  .user-bar button { background:none; border:none; color:#aaa; font-size:10px; text-decoration:underline; cursor:pointer; padding:0; }
-  #user-email { max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .user-bar { display:flex; justify-content:flex-start; align-items:center; gap:8px; margin-top:10px; font-size:12px; color:#BFB9B0; }
+  .user-bar button { background:none; border:none; color:#BFB9B0; font-size:12px; font-family:var(--font); text-decoration:underline; cursor:pointer; padding:4px 0; }
+  #user-email { max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #auth-screen { position:fixed; inset:0; z-index:200; background:var(--bg, #f4f4f2); display:flex; align-items:center; justify-content:center; padding:16px; overflow-y:auto; }
   #auth-screen.oculta { display:none; }
   .auth-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:28px 22px; width:100%; max-width:360px; text-align:center; font-family:var(--font); }
@@ -491,24 +514,92 @@ if (ENV === 'dev') {
   .doca-card.locked .sbtn[class*="active-"] { opacity: 1; }
   .confirm-pend { margin-top:10px; padding:10px 12px; border:1px dashed var(--amber-border); border-radius:8px; font-size:12px; font-weight:600; color:var(--amber); background:var(--amber-bg); }
   .doca-locked-info { background:#EAF3DE; border:1px solid #639922; border-radius:8px; padding:9px 12px; margin-top:8px; font-size:12px; color:#3B6D11; }
+
+  /* ══ REDESENHO — FASE 1 (lista de docas do técnico) ══ */
+  .container { padding: 16px; }
+  .unit-card, .meta-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+  .unit-card label, .meta-card .field label { display: block; font-size: 13px; font-weight: 600; color: var(--muted-2); text-transform: none; letter-spacing: 0; margin-bottom: 6px; }
+  .unit-card select, .meta-card .field input { width: 100%; height: 48px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; font-size: 16px; font-family: var(--font); color: var(--ink); background: #FAF9F6; -webkit-appearance: none; }
+  .unit-card select:focus, .meta-card .field input:focus, #obs-geral:focus { outline: none; border-color: var(--header-bg); box-shadow: 0 0 0 3px rgba(43,40,37,.14); }
+
+  .chips { display: flex; gap: 8px; overflow-x: auto; margin: 4px -16px 8px; padding: 4px 16px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: 0 0 auto; height: 40px; padding: 0 14px; display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; border: 1px solid var(--border-strong); background: #fff; color: #3B3733; font-family: var(--font); font-size: 14px; font-weight: 600; cursor: pointer; }
+  .chip .chip-n { min-width: 22px; height: 22px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; border-radius: 11px; background: var(--bg); color: #3B3733; font-size: 12px; font-weight: 700; }
+  .chip.ativo { background: var(--header-bg); border-color: var(--header-bg); color: #fff; }
+  .chip.ativo .chip-n { background: #4A4540; color: #fff; }
+  @media (max-width: 375px) { .meta-grid { grid-template-columns: 1fr; } }
+  .vazio-filtro { text-align: center; color: var(--muted); font-size: 14px; padding: 24px 0; }
+
+  .doca-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 10px; }
+  .doca-card.locked { background: #F4FAEF; border-color: #C9E0B6; }
+  .doca-card-header { min-height: 72px; padding: 12px 14px; gap: 12px; background: transparent; border-bottom: none; }
+  .doca-card.locked .doca-card-header { background: transparent; border-bottom: none; }
+  .doca-card-header:active { background: rgba(31,29,27,.04); }
+  .doca-card-header:focus-visible { outline: 2px solid var(--header-bg); outline-offset: -2px; }
+  .doca-body.open { border-top: 1px solid var(--border); }
+  .doca-info { flex: 1; min-width: 0; gap: 12px; }
+  .doca-info > div:last-child { min-width: 0; }
+  .doca-badge { width: 48px; height: 48px; border-radius: 10px; font-family: var(--font-cond); font-size: 20px; font-weight: 700; }
+  .doca-badge.longo { font-size: 13px; }
+  .doca-badge.pendente { background: var(--bg); color: var(--ink); }
+  .doca-badge.preenchida { background: var(--header-bg); color: #fff; }
+  .doca-badge.ok { background: #2D5F14; color: #fff; }
+  .doca-title { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .doca-subtitle { font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .doca-status-pills { flex-direction: column; align-items: flex-end; flex-wrap: nowrap; gap: 4px; flex-shrink: 0; }
+  .pill { font-size: 12px; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+  .pill-ok { background: var(--st-ok-bg); color: var(--st-ok-fg); }
+  .pill-ressalva { background: var(--st-res-bg); color: var(--st-res-fg); }
+  .pill-naook { background: var(--st-nok-bg); color: var(--st-nok-fg); }
+  .pill-naoapl { background: var(--st-na-bg); color: var(--st-na-fg); }
+  .pill-vazio { background: var(--st-pend-bg); color: var(--st-pend-fg); border: 1px dashed var(--border-strong); }
+
+  .summary { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+  .summary h3 { font-family: var(--font-cond); font-size: 16px; font-weight: 700; color: var(--ink); text-transform: none; letter-spacing: 0; }
+  .summary-grid { grid-template-columns: repeat(4, 1fr); }
+  .scard { border-radius: 10px; padding: 10px 4px; text-align: center; }
+  .scard .num { font-family: var(--font-cond); font-size: 26px; font-weight: 700; }
+  .scard .lbl { font-size: 12px; font-weight: 600; margin-top: 4px; }
+  .scard-ok { background: var(--st-ok-bg); } .scard-ok .num, .scard-ok .lbl { color: var(--st-ok-fg); }
+  .scard-res { background: var(--st-res-bg); } .scard-res .num, .scard-res .lbl { color: var(--st-res-fg); }
+  .scard-nok { background: var(--st-nok-bg); } .scard-nok .num, .scard-nok .lbl { color: var(--st-nok-fg); }
+  .scard-na { background: var(--st-na-bg); } .scard-na .num, .scard-na .lbl { color: var(--st-na-fg); }
+
+  .btn { min-height: 48px; border: 1px solid var(--border-strong); border-radius: 10px; font-size: 15px; color: var(--ink); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: transparent; }
+  .btn-primary:active { background: #A81F16; }
+  .add-doca-btn { min-height: 48px; border-color: var(--border-strong); border-radius: 12px; color: var(--muted-2); font-size: 15px; font-weight: 600; }
+  .corretiva-item { border-radius: 10px; }
+  .corretiva-doca { font-family: var(--font-cond); font-size: 15px; color: var(--st-res-fg); }
 </style>
 </head>
 <body>
 
 <div class="page-header">
-  <img class="logo-belcito" src="data:image/png;base64,__BELCITO_B64__" alt="Belcito" />
-  <div class="header-text">
-    <h1 id="header-title">Checklist Preventiva</h1>
-    <p id="header-subtitle">Selecione a unidade</p>
-    <span id="sync-status" style="font-size:10px;color:#888;display:block;margin-top:2px;"></span>
-    <div class="user-bar"><span id="user-email"></span><button onclick="sair()">Sair</button></div>
+  <div class="hdr-row">
+    <img class="hdr-logo" src="icon.png" alt="Belcito" />
+    <div class="hdr-info">
+      <h1 id="header-title">Checklist Preventiva</h1>
+      <p id="header-sub">Selecione a unidade</p>
+    </div>
+    <span id="sync-status" class="sync-badge" data-estado="busy"></span>
+    <button id="btn-gestor" class="hdr-gestor" onclick="abrirGestor()" aria-label="Área do Gestor" title="Área do Gestor">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+    </button>
   </div>
-  <img class="logo-cliente" id="client-logo" src="" alt="Cliente" />
+  <div class="user-bar"><span id="user-email"></span><button onclick="sair()">Sair</button></div>
+  <div class="hdr-progress">
+    <div class="hdr-progress-top"><span id="progress-txt">0 de 0 itens preenchidos</span><span id="progress-pct">0%</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+  <button id="btn-proxima" class="btn-proxima" onclick="irParaPendente()">
+    <span id="btn-proxima-txt"></span>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  </button>
 </div>
 
 <div class="container">
-
-  <button class="gestor-link" id="btn-gestor" style="display:none;" onclick="abrirGestor()">🔒 Área do Gestor</button>
 
   <div class="unit-card">
     <label>Unidade</label>
@@ -528,28 +619,26 @@ if (ENV === 'dev') {
     </div>
     <div class="field" style="margin-top:10px;">
       <label>Observação Geral da Visita</label>
-      <textarea id="obs-geral" placeholder="Anotações gerais da visita..." style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:var(--font);background:var(--surface-1);resize:none;min-height:58px;"></textarea>
+      <textarea id="obs-geral" placeholder="Anotações gerais da visita..." style="width:100%;padding:12px;border:1px solid var(--border-strong);border-radius:10px;font-size:16px;font-family:var(--font);color:var(--ink);background:#FAF9F6;resize:none;min-height:84px;"></textarea>
     </div>
   </div>
 
-  <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
-    <span>Docas</span>
-    <span id="docas-progress" style="font-weight:400;color:var(--text-muted);font-size:11px;letter-spacing:0;text-transform:none;"></span>
+  <div class="chips" id="chips-docas">
+    <button class="chip ativo" data-filtro="todas" onclick="setFiltro('todas')">Todas <span class="chip-n" id="n-todas">0</span></button>
+    <button class="chip" data-filtro="pendentes" onclick="setFiltro('pendentes')">Pendentes <span class="chip-n" id="n-pendentes">0</span></button>
+    <button class="chip" data-filtro="problema" onclick="setFiltro('problema')">Com problema <span class="chip-n" id="n-problema">0</span></button>
+    <button class="chip" data-filtro="confirmadas" onclick="setFiltro('confirmadas')">Confirmadas <span class="chip-n" id="n-confirmadas">0</span></button>
   </div>
   <div id="docas-container"></div>
   <button class="add-doca-btn" onclick="openAddModal()">+ Adicionar doca</button>
 
   <div class="summary">
-    <h3>Resumo geral</h3>
+    <h3>Resumo da unidade</h3>
     <div class="summary-grid">
-      <div class="scard scard-ok"><div class="num" id="s-ok">0</div><div class="lbl">Preventiva Ok</div></div>
-      <div class="scard scard-res"><div class="num" id="s-res">0</div><div class="lbl">Com Ressalvas</div></div>
+      <div class="scard scard-ok"><div class="num" id="s-ok">0</div><div class="lbl">Ok</div></div>
+      <div class="scard scard-res"><div class="num" id="s-res">0</div><div class="lbl">Ressalva</div></div>
       <div class="scard scard-nok"><div class="num" id="s-nok">0</div><div class="lbl">Não Ok</div></div>
-      <div class="scard scard-na"><div class="num" id="s-na">0</div><div class="lbl">Não se Aplica</div></div>
-    </div>
-    <div class="progress-bar-wrap">
-      <div class="progress-label"><span>Preenchimento</span><span id="progress-pct">0%</span></div>
-      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="scard scard-na"><div class="num" id="s-na">0</div><div class="lbl">N/A</div></div>
     </div>
   </div>
 
@@ -688,7 +777,7 @@ if (ENV === 'dev') {
 
 // ── LOGOS (base64) ──────────────────────────────────────────────────────────
 const LOGOS = {
-  belcito: document.querySelector('.logo-belcito').src,
+  belcito: document.querySelector('.auth-logo').src,
   shopee:  'data:image/png;base64,__SHOPEE_B64__',
   alcon:   'data:image/png;base64,__ALCON_B64__',
 };
@@ -1601,10 +1690,12 @@ function onUnitChange() {
   loadUnit(currentUnitKey);
 }
 
+const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const mesAno = mk => MESES_ABREV[parseInt(mk.slice(5), 10) - 1] + '/' + mk.slice(0, 4);
+
 function loadUnit(key) {
   const u = UNITS[key];
-  document.getElementById('header-title').textContent = u.cliente + ' — ' + u.unidade;
-  document.getElementById('client-logo').src = LOGOS[u.logo];
+  document.getElementById('header-sub').textContent = u.cliente + ' · ' + u.unidade + ' · ' + mesAno(monthKey());
   document.getElementById('docas-container').innerHTML =
     '<p style="text-align:center;color:var(--text-muted);padding:2rem;">Carregando...</p>';
   setSyncStatus('Carregando...');
@@ -1691,7 +1782,13 @@ function saveToFirestore() {
     .catch(e => { console.error('save error:', e); setSyncStatus('Erro ao salvar'); });
 }
 
-function setSyncStatus(msg) { document.getElementById('sync-status').textContent = msg; }
+function setSyncStatus(msg) {
+  const el = document.getElementById('sync-status');
+  const texto = String(msg || '').replace(/^✓\s*/, '');
+  el.textContent = texto;
+  el.dataset.estado = /Erro/.test(texto) ? 'erro' : (texto === 'Salvo' ? 'ok' : 'busy');
+  el.style.display = texto ? 'inline-flex' : 'none';
+}
 
 // ── AUTENTICAÇÃO (Google) E AUTORIZAÇÃO (coleção usuarios) ────────────────────
 const auth = firebase.auth();
@@ -1771,7 +1868,7 @@ async function verificarAcesso() {
   }
   usuario = { email, uid: user.uid, nome: dados.nome || user.displayName || email, papel: dados.papel === 'gestor' ? 'gestor' : 'tecnico' };
   document.getElementById('user-email').textContent = email;
-  document.getElementById('btn-gestor').style.display = ehGestor() ? 'block' : 'none';
+  document.getElementById('btn-gestor').style.display = ehGestor() ? 'flex' : 'none';
   fbReady = true;
   mostrarTela('app');
   loadUnit(currentUnitKey);
@@ -1796,11 +1893,36 @@ async function sair() {
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
+// Filtros da lista (só exibição). Pendentes = ainda não confirmadas; Com problema = P ou N em Ressalva/Não Ok.
+let filtroDocas = 'todas';
+const FILTROS = {
+  todas: () => true,
+  pendentes: d => !d.locked,
+  problema: d => temProblema(d.portao) || temProblema(d.nivel),
+  confirmadas: d => !!d.locked,
+};
+
+function setFiltro(f) { filtroDocas = f; renderAll(); }
+
 function renderAll() {
   const container = document.getElementById('docas-container');
   container.innerHTML = '';
-  state.forEach(d => container.appendChild(buildCard(d)));
+  const lista = state.filter(FILTROS[filtroDocas]);
+  lista.forEach(d => container.appendChild(buildCard(d)));
+  if (state.length && !lista.length) container.innerHTML = '<p class="vazio-filtro">Nenhuma doca neste filtro</p>';
   updateSummary();
+}
+
+const proximaPendente = () => state.find(d => !d.locked);
+
+function irParaPendente() {
+  const d = proximaPendente();
+  if (!d) return;
+  if (!FILTROS[filtroDocas](d)) filtroDocas = 'todas';
+  d.open = true;
+  renderAll();
+  const el = document.getElementById('card-' + d.id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function buildCard(d) {
@@ -1808,26 +1930,29 @@ function buildCard(d) {
   wrap.className = 'doca-card' + (d.locked ? ' locked' : '');
   wrap.id = 'card-' + d.id;
 
-  const pLabel = d.portao ? STATUS_INFO[d.portao].label : '—';
-  const nLabel = d.nivel  ? STATUS_INFO[d.nivel].label  : '—';
-  const pPill  = d.portao ? STATUS_INFO[d.portao].pill  : 'pill-vazio';
-  const nPill  = d.nivel  ? STATUS_INFO[d.nivel].pill   : 'pill-vazio';
+  const curto = { ok: 'Ok', ressalva: 'Ressalva', naook: 'Não Ok', naoapl: 'N/A' };
+  const pTxt = d.portao ? curto[d.portao] : '—';
+  const nTxt = d.nivel ? curto[d.nivel] : '—';
+  const pPill = d.portao ? STATUS_INFO[d.portao].pill : 'pill-vazio';
+  const nPill = d.nivel ? STATUS_INFO[d.nivel].pill : 'pill-vazio';
+  const numero = String(d.num);
+  const caixa = d.locked
+    ? '<div class="doca-badge ok"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>'
+    : `<div class="doca-badge ${d.portao && d.nivel ? 'preenchida' : 'pendente'}${numero.length > 3 ? ' longo' : ''}">${esc(numero)}</div>`;
+  const sub = d.locked ? 'Confirmada · ' + (fmtDate(d.data) || '—') : d.modelo;
+
   wrap.innerHTML = `
-    <div class="doca-card-header" onclick="toggleCard(${d.id})">
+    <div class="doca-card-header" role="button" tabindex="0" onclick="toggleCard(${d.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleCard(${d.id});}">
       <div class="doca-info">
-        <div class="doca-badge">${esc(d.num)}</div>
+        ${caixa}
         <div>
           <div class="doca-title">Doca ${esc(d.num)}</div>
-          <div class="doca-subtitle">${esc(d.modelo)}</div>
+          <div class="doca-subtitle">${esc(sub)}</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;">
-        <div class="doca-status-pills">
-          ${d.locked ? '<span class="locked-badge">🔒 Confirmada</span>' : ''}
-          <span class="pill ${pPill}">P: ${pLabel}</span>
-          <span class="pill ${nPill}">N: ${nLabel}</span>
-        </div>
-        <span class="chevron ${d.open ? 'open' : ''}">&#8964;</span>
+      <div class="doca-status-pills">
+        <span class="pill ${pPill}">P · ${pTxt}</span>
+        <span class="pill ${nPill}">N · ${nTxt}</span>
       </div>
     </div>
     <div class="doca-body ${d.open ? 'open' : ''}">
@@ -2081,8 +2206,16 @@ function updateSummary() {
   const pct = total ? Math.round(filled/total*100) : 0;
   document.getElementById('progress-pct').textContent = pct + '%';
   document.getElementById('progress-fill').style.width = pct + '%';
-  document.getElementById('header-subtitle').textContent = state.length + ' docas · ' + pct + '% preenchido';
-  document.getElementById('docas-progress').textContent = filled + '/' + total + ' preenchidos';
+  document.getElementById('progress-txt').textContent = filled + ' de ' + total + ' itens preenchidos';
+  Object.keys(FILTROS).forEach(k => {
+    document.getElementById('n-' + k).textContent = state.filter(FILTROS[k]).length;
+    document.querySelector('.chip[data-filtro="' + k + '"]').classList.toggle('ativo', k === filtroDocas);
+  });
+  const prox = proximaPendente();
+  const btn = document.getElementById('btn-proxima');
+  btn.style.display = state.length ? 'flex' : 'none';
+  btn.disabled = !prox;
+  document.getElementById('btn-proxima-txt').textContent = prox ? 'Ir para próxima pendente — Doca ' + prox.num : 'Todas as docas confirmadas';
   updateCorretivas();
 }
 
