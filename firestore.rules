@@ -3,35 +3,27 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ── funções ─────────────────────────────────────────────────────────────
-    function emailLogado() {
+    function emailAtual() {
       return request.auth.token.email.lower();
-    }
-
-    function perfil() {
-      return get(/databases/$(database)/documents/usuarios/$(emailLogado())).data;
     }
 
     // logado com e-mail verificado e cadastrado (e ativo) em usuarios/{email}
     function ativo() {
       return request.auth != null
         && request.auth.token.email_verified == true
-        && exists(/databases/$(database)/documents/usuarios/$(emailLogado()))
-        && perfil().ativo == true;
+        && exists(/databases/$(database)/documents/usuarios/$(emailAtual()))
+        && get(/databases/$(database)/documents/usuarios/$(emailAtual())).data.ativo == true;
     }
 
     function gestor() {
-      return ativo() && perfil().papel == 'gestor';
+      return ativo()
+        && get(/databases/$(database)/documents/usuarios/$(emailAtual())).data.papel == "gestor";
     }
 
     // ── usuarios/{email} (ID = e-mail em minúsculas) ────────────────────────
     match /usuarios/{email} {
-      allow read: if (request.auth != null && request.auth.token.email.lower() == email) || gestor();
-
-      // só gestor escreve; o gestor não desativa, rebaixa nem apaga a si mesmo
-      allow create, update: if gestor()
-        && !(email == emailLogado()
-             && (request.resource.data.ativo != true || request.resource.data.papel != 'gestor'));
-      allow delete: if gestor() && email != emailLogado();
+      allow read: if (request.auth != null && emailAtual() == email) || gestor();
+      allow create, update, delete: if gestor();
     }
 
     // ── checklists/{unidade_mês} ────────────────────────────────────────────
@@ -43,8 +35,9 @@ service cloud.firestore {
         allow read: if ativo();
         allow create: if ativo()
           && request.resource.data.autorUid == request.auth.uid
+          && request.resource.data.dados is string
           && request.resource.data.dados.size() < 400000;
-        allow delete: if ativo() && (gestor() || resource.data.autorUid == request.auth.uid);
+        allow delete: if gestor() || resource.data.autorUid == request.auth.uid;
         allow update: if false;
       }
     }
