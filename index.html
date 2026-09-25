@@ -255,6 +255,27 @@
     box-shadow: 0 0 0 3px rgba(186,117,23,0.12);
   }
 
+  .foto-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .foto-th { position: relative; width: 72px; height: 72px; }
+  .foto-th img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
+  .foto-x {
+    position: absolute; top: -6px; right: -6px; width: 22px; height: 22px;
+    border-radius: 50%; border: none; background: #A32D2D; color: #fff;
+    font-size: 11px; line-height: 22px; padding: 0; cursor: pointer;
+  }
+  .foto-add {
+    display: flex; align-items: center; justify-content: center;
+    min-width: 72px; height: 72px; padding: 0 10px; box-sizing: border-box;
+    border: 1px dashed var(--amber-border); border-radius: 8px;
+    color: var(--amber); font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  #foto-view {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,.88); align-items: center; justify-content: center;
+  }
+  #foto-view.open { display: flex; }
+  #foto-view img { max-width: 96vw; max-height: 96vh; }
+
   .divider { height: 1px; background: var(--border); margin: 0.75rem 0; }
 
   /* SUMMARY */
@@ -596,6 +617,7 @@
   </div>
 </div>
 
+<div id="foto-view" onclick="this.classList.remove('open')"><img id="foto-view-img" alt=""></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1430,6 +1452,9 @@ firebase.initializeApp({
 const db = firebase.firestore();
 db.enablePersistence({ synchronizeTabs: true }).catch(e => console.warn('Persistência offline indisponível:', e.code));
 let unsubSnapshot = null;
+let unsubFotos = null;
+let fotos = {};
+const MAX_FOTOS = 3;
 let saveTimer = null;
 let fbReady = false;
 let justSaved = false;
@@ -1510,6 +1535,8 @@ function loadUnit(key) {
 
   clearTimeout(saveTimer); // Cancela save pendente de outra unidade
   if (unsubSnapshot) { unsubSnapshot(); unsubSnapshot = null; }
+  if (unsubFotos) { unsubFotos(); unsubFotos = null; }
+  fotos = {};
 
   const mes = monthKey();
   const docRef = db.collection('checklists').doc(key + '_' + mes);
@@ -1517,19 +1544,34 @@ function loadUnit(key) {
   docRef.get().then(snap => {
     // Se documento existe e tem docas, usa ele. Senão, recria (corrige dados corrompidos)
     if (snap.exists && (snap.data().docas || []).length > 0) { startSnapshot(docRef); return; }
-    return db.collection('checklists').doc(key + '_' + monthKey(-1)).get().then(prevSnap => {
+    const prevRef = db.collection('checklists').doc(key + '_' + monthKey(-1));
+    return prevRef.get().then(prevSnap => {
       nextId = 1;
-      return docRef.set({
-        unitKey: key, mes,
-        dataGlobal: '', respGlobal: '',
-        docas: buildFreshState(key, prevSnap.exists ? prevSnap.data().docas : []),
-      }).then(() => startSnapshot(docRef));
+      const docas = buildFreshState(key, prevSnap.exists ? prevSnap.data().docas : []);
+      return docRef.set({ unitKey: key, mes, dataGlobal: '', respGlobal: '', docas })
+        .then(() => herdarFotos(prevRef, docRef, docas))
+        .then(() => startSnapshot(docRef));
     });
   }).catch(e => { console.error('loadUnit error:', e); setSyncStatus('Erro'); });
 }
 
+// Copia (mesmo id = idempotente) as fotos das corretivas herdadas para o mês novo.
+function herdarFotos(prevRef, docRef, docas) {
+  const herdada = (num, campo) => docas.some(d => d.num === num && (d[campo] === 'ressalva' || d[campo] === 'naook'));
+  return prevRef.collection('fotos').get()
+    .then(s => Promise.all(s.docs
+      .filter(x => herdada(x.data().doca, x.data().campo))
+      .map(x => docRef.collection('fotos').doc(x.id).set(x.data()))))
+    .catch(e => console.warn('Herança de fotos falhou:', e));
+}
+
 // ── FIRESTORE SYNC ────────────────────────────────────────────────────────────
 function startSnapshot(docRef) {
+  unsubFotos = docRef.collection('fotos').onSnapshot(snap => {
+    fotos = {};
+    snap.forEach(x => { fotos[x.id] = { id: x.id, ...x.data() }; });
+    renderAll();
+  }, e => console.error('Fotos snapshot error:', e));
   unsubSnapshot = docRef.onSnapshot(snap => {
     if (!snap.exists || snap.metadata.hasPendingWrites) return;
     // Snapshot do nosso próprio save: não re-renderiza (evita fechar pickers e sobrescrever estado local)
@@ -1653,9 +1695,66 @@ function buildStatusBlock(d, campo, label, habilitado) {
     <div class="status-block">
       <div class="status-block-label">${label}</div>
       <div class="status-btns">${btns}</div>
-      ${showObs ? `<div class="obs-area"><textarea ${dis} placeholder="Descreva o problema..." oninput="setObs(${d.id},'${campoObs}',this.value)">${d[campoObs]||''}</textarea></div>` : ''}
+      ${showObs ? `<div class="obs-area"><textarea ${dis} placeholder="Descreva o problema..." oninput="setObs(${d.id},'${campoObs}',this.value)">${d[campoObs]||''}</textarea></div>${buildFotos(d, campo)}` : ''}
     </div>
   `;
+}
+
+// ── FOTOS (subcoleção checklists/{doc}/fotos, JPEG comprimido em base64) ─────────
+const fotosDe = (num, campo, lista = Object.values(fotos)) =>
+  lista.filter(f => f.doca === num && f.campo === campo).sort((a, b) => a.criadoEm - b.criadoEm);
+
+const fotosRef = () => db.collection('checklists').doc(currentUnitKey + '_' + monthKey()).collection('fotos');
+
+function thumbsHtml(num, campo, removivel) {
+  return fotosDe(num, campo).map(f => `<div class="foto-th"><img src="${f.dados}" alt="Foto" onclick="verFoto('${f.id}')">`
+    + (removivel ? `<button class="foto-x" onclick="removeFoto('${f.id}')">✕</button>` : '') + '</div>').join('');
+}
+
+function buildFotos(d, campo) {
+  const n = fotosDe(d.num, campo).length;
+  const add = !d.locked && n < MAX_FOTOS
+    ? `<label class="foto-add">📷 Foto ${n}/${MAX_FOTOS}<input type="file" accept="image/*" multiple hidden onchange="addFotos(${d.id},'${campo}',this)"></label>`
+    : '';
+  return (n || add) ? `<div class="foto-row">${thumbsHtml(d.num, campo, !d.locked)}${add}</div>` : '';
+}
+
+async function comprimirFoto(file, max = 1024) {
+  const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.7);
+}
+
+async function addFotos(id, campo, input) {
+  const d = state.find(x => x.id === id);
+  const files = [...input.files];
+  input.value = '';
+  if (!d || d.locked) return;
+  const room = MAX_FOTOS - fotosDe(d.num, campo).length;
+  if (files.length > room) showToast('Máximo de ' + MAX_FOTOS + ' fotos por item');
+  for (const f of files.slice(0, room)) {
+    try {
+      const dados = await comprimirFoto(f);
+      fotosRef().add({ doca: d.num, campo, dados, criadoEm: Date.now() })
+        .catch(e => { console.error('foto error:', e); showToast('Erro ao salvar foto'); });
+    } catch (e) { console.error('foto error:', e); showToast('Não foi possível ler a foto'); }
+  }
+}
+
+function removeFoto(fotoId) {
+  if (confirm('Remover esta foto?')) fotosRef().doc(fotoId).delete();
+}
+
+function apagarFotos(num, campo) {
+  fotosDe(num, campo).forEach(f => fotosRef().doc(f.id).delete());
+}
+
+function verFoto(fotoId) {
+  document.getElementById('foto-view-img').src = fotos[fotoId].dados;
+  document.getElementById('foto-view').classList.add('open');
 }
 
 // ── INTERACTIONS ──────────────────────────────────────────────────────────────
@@ -1667,7 +1766,7 @@ function toggleCard(id) {
 function setStatus(id, campo, val) {
   const d = state.find(x => x.id === id);
   if (!d) return;
-  if (d[campo] === val) { d[campo] = ''; d[campo + 'Obs'] = ''; }
+  if (d[campo] === val) { d[campo] = ''; d[campo + 'Obs'] = ''; apagarFotos(d.num, campo); }
   else { d[campo] = val; }
   renderAll();
   scheduleSave();
@@ -1693,6 +1792,8 @@ function setDocaField(id, campo, val, manualFlag) {
 
 function removeDoca(id) {
   if (!confirm('Remover esta doca?')) return;
+  const rem = state.find(x => x.id === id);
+  if (rem) ['portao', 'nivel'].forEach(c => apagarFotos(rem.num, c));
   state = state.filter(x => x.id !== id);
   renderAll();
   scheduleSave();
@@ -1764,9 +1865,9 @@ function updateCorretivas() {
   const items = [];
   state.forEach(d => {
     if ((d.portao === 'ressalva' || d.portao === 'naook') && !(d.portaoAtend && d.portaoMotivo))
-      items.push({ id: d.id, doca: d.num, equip: 'Porta', obs: d.portaoObs || '—', atendField: 'portaoAtend', motivoField: 'portaoMotivo', atend: d.portaoAtend, motivo: d.portaoMotivo });
+      items.push({ id: d.id, doca: d.num, equip: 'Porta', campo: 'portao', num: d.num, obs: d.portaoObs || '—', atendField: 'portaoAtend', motivoField: 'portaoMotivo', atend: d.portaoAtend, motivo: d.portaoMotivo });
     if ((d.nivel === 'ressalva' || d.nivel === 'naook') && !(d.nivelAtend && d.nivelMotivo))
-      items.push({ id: d.id, doca: d.num, equip: 'Niveladora', obs: d.nivelObs || '—', atendField: 'nivelAtend', motivoField: 'nivelMotivo', atend: d.nivelAtend, motivo: d.nivelMotivo });
+      items.push({ id: d.id, doca: d.num, equip: 'Niveladora', campo: 'nivel', num: d.num, obs: d.nivelObs || '—', atendField: 'nivelAtend', motivoField: 'nivelMotivo', atend: d.nivelAtend, motivo: d.nivelMotivo });
   });
   if (!items.length) {
     list.innerHTML = '<p class="empty-corretivas">Nenhuma corretiva registrada</p>';
@@ -1779,6 +1880,7 @@ function updateCorretivas() {
         <span class="corretiva-equip">${it.equip}</span>
       </div>
       <div class="corretiva-text">${it.obs}</div>
+      <div class="foto-row" style="margin:0 0 8px;">${thumbsHtml(it.num, it.campo, false)}</div>
       <div class="corretiva-grid">
         <div class="cfield">
           <label>Data Atendimento</label>
@@ -1816,7 +1918,7 @@ function exportCSV() {
 }
 
 // ── EXPORT XLSX (formato Belcito) ─────────────────────────────────────────────
-function buildWS(wb, unitKey, doc) {
+function buildWS(wb, unitKey, doc, listaFotos = []) {
   const u = UNITS[unitKey];
   const docas    = doc.docas    || [];
   const data     = doc.dataGlobal || '';
@@ -1878,12 +1980,12 @@ function buildWS(wb, unitKey, doc) {
   const corretivas = [];
   docas.forEach(d => {
     [['portao',d.portao,d.portaoObs,'Porta',d.portaoAtend,d.portaoMotivo],
-     ['nivel', d.nivel, d.nivelObs, 'Niveladora',d.nivelAtend,d.nivelMotivo]].forEach(([,v,o,eq,atend,motivo]) => {
+     ['nivel', d.nivel, d.nivelObs, 'Niveladora',d.nivelAtend,d.nivelMotivo]].forEach(([campo,v,o,eq,atend,motivo]) => {
       if(v==='ok') ok++;
       else if(v==='ressalva') res++;
       else if(v==='naook')    nok++;
       else if(v==='naoapl')   na++;
-      if(v==='ressalva'||v==='naook') corretivas.push({doca:d.num,equip:eq,obs:o||'—',atend:atend||'',motivo:motivo||''});
+      if(v==='ressalva'||v==='naook') corretivas.push({doca:d.num,equip:eq,campo,obs:o||'—',atend:atend||'',motivo:motivo||''});
     });
   });
 
@@ -1899,7 +2001,7 @@ function buildWS(wb, unitKey, doc) {
 
   r += 2;
   ws.getCell('A'+r).value = 'CORRETIVAS'; ws.getCell('A'+r).font = { bold:true }; r++;
-  ['Item','Doca','Descrição','Atendimento','Motivo'].forEach((h, i) => {
+  ['Item','Doca','Descrição','Atendimento','Motivo','Fotos'].forEach((h, i) => {
     const cell = ws.getCell(r, i+1);
     cell.value = h;
     cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFCC0000' } };
@@ -1911,7 +2013,12 @@ function buildWS(wb, unitKey, doc) {
   } else {
     corretivas.forEach((c, i) => {
       const atendFmt = fmtDate(c.atend);
-      ws.getRow(r).values = [i+1, c.doca, c.obs, atendFmt, c.motivo]; r++;
+      ws.getRow(r).values = [i+1, c.doca, c.obs, atendFmt, c.motivo];
+      const fs = fotosDe(c.doca, c.campo, listaFotos).slice(0, MAX_FOTOS);
+      if (fs.length) ws.getRow(r).height = 70;
+      fs.forEach((f, k) => ws.addImage(wb.addImage({ base64: f.dados, extension:'jpeg' }),
+        { tl:{ col:5 + k, row:r - 1 }, ext:{ width:90, height:68 }, editAs:'oneCell' }));
+      r++;
     });
   }
 
@@ -1932,7 +2039,7 @@ async function exportXLSX() {
     respGlobal: document.getElementById('resp-global').value || '',
     obsGeral:   document.getElementById('obs-geral').value   || '',
     docas: state,
-  });
+  }, Object.values(fotos));
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type:'application/octet-stream' });
   const url = URL.createObjectURL(blob);
@@ -2092,7 +2199,10 @@ async function exportGestorXLSX() {
   const mes = document.getElementById('gestor-mes').value;
   setSyncStatus('Gerando XLSX...');
   const wb = new ExcelJS.Workbook();
-  Object.keys(gestorDados).forEach(key => buildWS(wb, key, gestorDados[key]));
+  const keys = Object.keys(gestorDados);
+  const listas = await Promise.all(keys.map(k =>
+    db.collection('checklists').doc(k + '_' + mes).collection('fotos').get().then(s => s.docs.map(x => x.data()))));
+  keys.forEach((key, i) => buildWS(wb, key, gestorDados[key], listas[i]));
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type:'application/octet-stream' });
   const url = URL.createObjectURL(blob);
