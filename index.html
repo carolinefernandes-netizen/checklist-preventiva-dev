@@ -275,6 +275,11 @@
   }
   #foto-view.open { display: flex; }
   #foto-view img { max-width: 96vw; max-height: 96vh; }
+  #foto-view-x {
+    position: absolute; top: 12px; right: 12px; width: 44px; height: 44px;
+    border-radius: 50%; border: none; background: rgba(255,255,255,.9); color: #1a1a18;
+    font-size: 20px; cursor: pointer;
+  }
 
   .divider { height: 1px; background: var(--border); margin: 0.75rem 0; }
 
@@ -596,6 +601,7 @@
 
   </div>
 </div>
+</div>
 
 <!-- ADD MODAL -->
 <div class="modal-overlay" id="add-modal">
@@ -617,7 +623,7 @@
   </div>
 </div>
 
-<div id="foto-view" onclick="this.classList.remove('open')"><img id="foto-view-img" alt=""></div>
+<div id="foto-view" onclick="this.classList.remove('open')"><button id="foto-view-x" aria-label="Fechar">✕</button><img id="foto-view-img" alt=""></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1753,7 +1759,9 @@ function apagarFotos(num, campo) {
 }
 
 function verFoto(fotoId) {
-  document.getElementById('foto-view-img').src = fotos[fotoId].dados;
+  const f = fotos[fotoId];
+  if (!f) { showToast('Foto não encontrada'); return; }
+  document.getElementById('foto-view-img').src = f.dados;
   document.getElementById('foto-view').classList.add('open');
 }
 
