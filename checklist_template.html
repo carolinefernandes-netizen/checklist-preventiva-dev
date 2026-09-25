@@ -273,12 +273,14 @@ if (ENV === 'dev') {
     border-radius: 50%; border: none; background: #A32D2D; color: #fff;
     font-size: 11px; line-height: 22px; padding: 0; cursor: pointer;
   }
+  .foto-acoes { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
   .foto-add {
-    display: flex; align-items: center; justify-content: center;
-    min-width: 72px; height: 72px; padding: 0 10px; box-sizing: border-box;
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    min-height: 44px; padding: 0 8px; box-sizing: border-box; text-align: center;
     border: 1px dashed var(--amber-border); border-radius: 8px;
     color: var(--amber); font-size: 12px; font-weight: 600; cursor: pointer;
   }
+  .foto-cont { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
   #foto-view {
     display: none; position: fixed; inset: 0; z-index: 9999;
     background: rgba(0,0,0,.88); align-items: center; justify-content: center;
@@ -1922,12 +1924,16 @@ function thumbsHtml(num, campo, removivel) {
     + (removivel && podeRemoverFoto(f) ? `<button class="foto-x" onclick="removeFoto('${f.id}')">✕</button>` : '') + '</div>').join('');
 }
 
+// Duas origens explícitas (o seletor nativo varia entre Android/iOS); as duas caem no mesmo addFotos().
 function buildFotos(d, campo) {
   const n = fotosDe(d.num, campo).length;
-  const add = !d.locked && n < MAX_FOTOS
-    ? `<label class="foto-add">📷 Foto ${n}/${MAX_FOTOS}<input type="file" accept="image/*" multiple hidden onchange="addFotos(${d.id},'${campo}',this)"></label>`
+  const botao = (rotulo, atributos) =>
+    `<label class="foto-add">${rotulo}<input type="file" accept="image/*" ${atributos} hidden onchange="addFotos(${d.id},'${campo}',this)"></label>`;
+  const acoes = !d.locked && n < MAX_FOTOS
+    ? `<div class="foto-acoes">${botao('🖼 Escolher da galeria', 'multiple')}${botao('📷 Tirar foto', 'capture="environment"')}<span class="foto-cont">${n}/${MAX_FOTOS}</span></div>`
     : '';
-  return (n || add) ? `<div class="foto-row">${thumbsHtml(d.num, campo, !d.locked)}${add}</div>` : '';
+  const miniaturas = n ? `<div class="foto-row">${thumbsHtml(d.num, campo, !d.locked)}</div>` : '';
+  return miniaturas + acoes;
 }
 
 async function comprimirFoto(file, max = 1024) {
