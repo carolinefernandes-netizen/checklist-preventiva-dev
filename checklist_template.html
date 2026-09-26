@@ -2354,9 +2354,11 @@ function confirmAddDoca() {
 function updateSummary() {
   let ok=0, res=0, nok=0, na=0, total=0, filled=0;
   state.forEach(d => {
-    [d.portao, d.nivel].forEach(val => {
-      total++;
-      if (val) filled++;
+    // Progresso: a niveladora só é um item a fazer se a doca tem niveladora. O N/A automático (temNiveladora=false,
+    // definido na criação da doca) fica fora do total e do preenchido; N/A escolhido pelo técnico numa doca COM niveladora
+    // é uma decisão e conta como preenchido. Os contadores de status abaixo seguem contando tudo (informativo).
+    [[d.portao, true], [d.nivel, !!d.temNiveladora]].forEach(([val, contaNoProgresso]) => {
+      if (contaNoProgresso) { total++; if (val) filled++; }
       if (val==='ok') ok++;
       else if (val==='ressalva') res++;
       else if (val==='naook') nok++;
