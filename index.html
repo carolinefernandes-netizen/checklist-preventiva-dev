@@ -65,9 +65,12 @@ if (ENV === 'dev') {
     background: var(--header-bg);
     color: var(--header-text);
     padding: 14px 16px 16px;
-    position: static;
+    position: sticky;
     top: 0;
+    z-index: 10;
   }
+  /* telas baixas (celular em paisagem): o header tem ~210px e fixo comeria mais da metade da tela -> volta a rolar junto */
+  @media (max-height: 520px) { .page-header { position: static; } }
   .hdr-row { display: flex; align-items: center; gap: 10px; }
   .hdr-logo { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: #fff; }
   .hdr-info { flex: 1; min-width: 0; }
@@ -1793,7 +1796,17 @@ function buildFreshState(key, carryOver = []) {
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
+// Header fixo: avisa o navegador o quanto do topo está ocupado, para que scrollIntoView e o foco de campos
+// (teclado do celular) não deixem o conteúdo escondido atrás dele. Em paisagem o header não é fixo -> 0.
+function ajustarScrollPadding() {
+  const h = document.querySelector('.page-header'), cs = getComputedStyle(h);
+  document.documentElement.style.scrollPaddingTop = cs.position === 'sticky' ? Math.round(h.getBoundingClientRect().height + (parseFloat(cs.top) || 0) + 8) + 'px' : '0px';
+}
+
 function init() {
+  new ResizeObserver(ajustarScrollPadding).observe(document.querySelector('.page-header'));
+  window.addEventListener('resize', ajustarScrollPadding);
+  ajustarScrollPadding();
   const sel = document.getElementById('unit-select');
   popularSeletorUnidades();
   sel.value = currentUnitKey;
