@@ -923,7 +923,7 @@ const LOGOS = {
 function range(a, b) { const r = []; for (let i = a; i <= b; i++) r.push(i); return r; }
 
 function buildSimoesFilho() {
-  const docas = [{ num: '17 S/N', modelo: 'Porta Manual / Rampa', niv: false }];
+  const docas = [{ num: '17', modelo: 'Porta Manual / Rampa', niv: false }];
   range(18, 36).forEach(n => docas.push({ num: String(n), modelo: 'Porta Manual/Niveladora Eletro Hid. (Marksell)', niv: true }));
   range(50, 87).forEach(n => docas.push({ num: String(n), modelo: 'Porta Manual/Niveladora Eletro Hid. (Marksell)', niv: true }));
   docas.push({ num: '88', modelo: 'Porta Manual', niv: false });
