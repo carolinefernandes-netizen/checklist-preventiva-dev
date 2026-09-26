@@ -656,6 +656,7 @@ if (ENV === 'dev') {
   .foto-add { gap: 8px; min-height: 48px; border: 1.5px solid var(--border-strong); border-radius: 10px; background: #FAF9F6; color: var(--ink); font-family: var(--font); font-size: 14px; font-weight: 600; }
   .foto-add:active { background: var(--bg); }
   .foto-cont { font-size: 12px; color: var(--muted); }
+  .remover-aviso { margin-top: 12px; padding: 10px 12px; text-align: center; font-size: 13px; line-height: 1.3; color: var(--muted-2); background: var(--bg); border-radius: 10px; }
 
   .doca-meta-card .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .doca-meta-card .field label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--muted-2); text-transform: none; letter-spacing: 0; }
@@ -2064,9 +2065,9 @@ function buildCard(d) {
         </div>
       </div></div>
       <div id="conf-${d.id}">${confirmHtml(d)}</div>
-      ${!d.locked ? `<div style="margin-top:8px;text-align:right;">
-        <button onclick="removeDoca(${d.id})" style="background:none;border:none;color:#A32D2D;font-size:12px;cursor:pointer;font-family:var(--font);">✕ Remover doca</button>
-      </div>` : ''}
+      ${d.locked ? '' : (podeRemoverDoca(d)
+        ? `<div style="margin-top:8px;text-align:right;"><button onclick="removeDoca(${d.id})" style="background:none;border:none;color:#A32D2D;font-size:12px;cursor:pointer;font-family:var(--font);">✕ Remover doca</button></div>`
+        : `<p class="remover-aviso">${AVISO_REMOVER_DOCA}</p>`)}
     </div>
   `;
   return wrap;
@@ -2165,7 +2166,7 @@ function buildFotos(d, campo) {
   const botao = (rotulo, atributos) =>
     `<label class="foto-add">${rotulo}<input type="file" accept="image/*" ${atributos} hidden onchange="addFotos(${d.id},'${campo}',this)"></label>`;
   const acoes = !d.locked && n < MAX_FOTOS
-    ? `<div class="foto-acoes">${botao(ICONE_GALERIA + 'Escolher da galeria', 'multiple')}${botao(ICONE_CAMERA + 'Tirar foto', 'capture="environment"')}<span class="foto-cont">${n}/${MAX_FOTOS}</span></div>`
+    ? `<div class="foto-acoes">${botao(ICONE_GALERIA + 'Galeria', 'multiple')}${botao(ICONE_CAMERA + 'Tirar foto', 'capture="environment"')}<span class="foto-cont">${n}/${MAX_FOTOS}</span></div>`
     : '';
   const miniaturas = n ? `<div class="foto-row">${thumbsHtml(d.num, campo, !d.locked)}</div>` : '';
   return miniaturas + acoes;
@@ -2203,6 +2204,10 @@ function removeFoto(fotoId) {
   if (confirm('Remover esta foto?'))
     fotosRef().doc(fotoId).delete().catch(e => { console.warn('remover foto:', e); showToast('Sem permissão para remover esta foto'); });
 }
+
+// Remover doca leva as fotos junto: só quem pode apagar todas (autor de todas, ou gestor). Evita foto órfã de outro técnico.
+const AVISO_REMOVER_DOCA = 'Esta doca tem fotos de outro técnico. Peça a um gestor para remover.';
+const podeRemoverDoca = d => ['portao', 'nivel'].every(c => fotosDe(d.num, c).every(podeRemoverFoto));
 
 function apagarFotos(num, campo) {
   fotosDe(num, campo).filter(podeRemoverFoto).forEach(f => fotosRef().doc(f.id).delete().catch(e => console.warn('apagar foto:', e)));
@@ -2250,8 +2255,9 @@ function setDocaField(id, campo, val, manualFlag) {
 }
 
 function removeDoca(id) {
-  if (!confirm('Remover esta doca e todas as fotos anexadas? Essa ação não pode ser desfeita.')) return;
   const rem = state.find(x => x.id === id);
+  if (rem && !podeRemoverDoca(rem)) { showToast(AVISO_REMOVER_DOCA); return; }
+  if (!confirm('Remover esta doca e todas as fotos anexadas? Essa ação não pode ser desfeita.')) return;
   if (rem) ['portao', 'nivel'].forEach(c => apagarFotos(rem.num, c));
   state = state.filter(x => x.id !== id);
   renderAll();
