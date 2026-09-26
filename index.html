@@ -669,6 +669,17 @@ if (ENV === 'dev') {
   .confirm-pend { min-height: 56px; margin: 0; padding: 10px 14px; display: flex; align-items: center; justify-content: center; text-align: center; border: 1.5px dashed var(--border-strong); border-radius: 12px; background: transparent; color: var(--muted); font-size: 15px; font-weight: 600; }
   .doca-locked-info { display: flex; align-items: center; gap: 12px; margin: 0; padding: 12px 14px; background: #F4FAEF; border: 1px solid #C9E0B6; border-radius: 12px; color: var(--st-ok-fg); font-size: 14px; line-height: 1.3; }
   .lock-ico { width: 44px; height: 44px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: #2D5F14; color: #fff; }
+
+  /* ══ Nova unidade (Área do Gestor) ══ */
+  .gp-nova { height: 36px; padding: 0 14px; background: #fff; color: var(--ink); border: 1px solid var(--border-strong); border-radius: 10px; font-family: var(--font); font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .gp-nova:active { background: var(--bg); }
+  #unidade-modal { z-index: 250; align-items: center; padding: 16px; }
+  #unidade-modal .modal { border-radius: 16px; max-width: 460px; padding: 20px; }
+  #unidade-modal .field input[type=file] { height: auto; padding: 10px 12px; font-size: 14px; }
+  #nu-logo-preview { display: block; max-width: 200px; max-height: 200px; margin-top: 10px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+  #nu-logo-preview[hidden] { display: none; }
+  .nu-dica { margin-top: 6px; font-size: 12px; color: var(--muted); }
+  .nu-erro { min-height: 18px; margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--st-nok-fg); }
 </style>
 </head>
 <body>
@@ -798,6 +809,7 @@ if (ENV === 'dev') {
       <section class="gestor-card gp-unidades">
         <div class="gp-card-head">
           <h3>Unidades</h3>
+          <button class="gp-nova" id="btn-nova-unidade" onclick="abrirNovaUnidade()">+ Nova unidade</button>
           <div class="gp-chips" id="gestor-chips"></div>
           <select id="gestor-filtro-cliente" onchange="filtrarGestorTabela()" hidden></select>
         </div>
@@ -831,6 +843,32 @@ if (ENV === 'dev') {
       </div>
     </section>
 
+  </div>
+</div>
+
+<!-- NOVA UNIDADE (só gestor, aberta pela Área do Gestor) -->
+<div class="modal-overlay" id="unidade-modal">
+  <div class="modal">
+    <h3>Nova unidade</h3>
+    <div class="field">
+      <label>Cliente</label>
+      <input type="text" id="nu-cliente" placeholder="Ex: Acme" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>Unidade</label>
+      <input type="text" id="nu-unidade" placeholder="Ex: Barueri SP01" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>Logo (opcional)</label>
+      <input type="file" id="nu-logo" accept="image/*" onchange="unidadeLogoEscolhido(this)" />
+      <img id="nu-logo-preview" alt="Prévia do logo" hidden />
+      <p class="nu-dica">Reduzido automaticamente para até 200×200 px. Limite de 150 KB.</p>
+    </div>
+    <p id="nu-erro" class="nu-erro" role="alert"></p>
+    <div class="modal-btns">
+      <button class="btn" onclick="fecharNovaUnidade()">Cancelar</button>
+      <button class="btn btn-primary" id="nu-criar" onclick="unidadeCriar()">Criar unidade</button>
+    </div>
   </div>
 </div>
 
@@ -1737,7 +1775,9 @@ function monthKey(offset = 0) {
 
 function buildFreshState(key, carryOver = []) {
   const u = UNITS[key];
-  return u.docas.map(d => {
+  // unidade cadastrada pelo gestor não tem molde de docas: usa as do mês anterior
+  const molde = u.docas.length ? u.docas : carryOver.map(c => ({ num: c.num, modelo: c.modelo, niv: c.temNiveladora }));
+  return molde.map(d => {
     const prev = carryOver.find(c => c.num === d.num);
     const openP = prev && !prev.portaoAtend && (prev.portao === 'ressalva' || prev.portao === 'naook');
     const openN = prev && !prev.nivelAtend  && (prev.nivel  === 'ressalva' || prev.nivel  === 'naook');
@@ -1755,13 +1795,7 @@ function buildFreshState(key, carryOver = []) {
 // ── INIT ─────────────────────────────────────────────────────────────────────
 function init() {
   const sel = document.getElementById('unit-select');
-  Object.keys(UNITS).filter(k => MODO_TESTE || k !== TESTE_KEY).forEach(key => {
-    const u = UNITS[key];
-    const opt = document.createElement('option');
-    opt.value = key;
-    opt.textContent = u.cliente + ' — ' + u.unidade;
-    sel.appendChild(opt);
-  });
+  popularSeletorUnidades();
   sel.value = currentUnitKey;
 
   document.getElementById('data-global').addEventListener('change', function() {
@@ -1966,6 +2000,7 @@ async function verificarAcesso() {
   document.getElementById('user-email').textContent = email;
   document.getElementById('btn-gestor').style.display = ehGestor() ? 'flex' : 'none';
   fbReady = true;
+  await carregarUnidades();
   mostrarTela('app');
   loadUnit(currentUnitKey);
 }
@@ -2401,18 +2436,22 @@ function buildWS(wb, unitKey, doc, listaFotos = []) {
   const obsGeral = doc.obsGeral  || '';
   const dataFmt  = fmtDate(data);
 
-  const wsName = u.unidade.replace(/[\\\/\?\*\[\]:]/g,'').substring(0, 31);
+  // nome de aba único (o Excel recusa duas abas iguais, ex.: "Barueri" de dois clientes) e com no máx. 31 caracteres
+  const wsBase = u.unidade.replace(/[\\\/\?\*\[\]:]/g,'');
+  let wsName = wsBase.substring(0, 31), wsN = 2;
+  while (wb.getWorksheet(wsName)) { const suf = ' ' + wsN++; wsName = wsBase.substring(0, 31 - suf.length) + suf; }
   const ws = wb.addWorksheet(wsName);
 
   ws.getRow(1).height = 55;
   for (let c = 1; c <= 8; c++)
     ws.getCell(1, c).fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF1A1A18' } };
   const belcitoImgId = wb.addImage({ base64: LOGOS.belcito, extension: 'png' });
-  const clienteImgId = wb.addImage({ base64: LOGOS[u.logo],  extension: 'png' });
+  const clienteImgId = LOGOS[u.logo] ? wb.addImage({ base64: LOGOS[u.logo], extension: 'png' }) : null;
   ws.addImage(belcitoImgId, { tl:{ col:0, row:0 }, ext:{ width:230, height:45 } });
 
   ws.mergeCells('A2:A5'); ws.mergeCells('B2:B5'); ws.mergeCells('C2:C5');
-  ws.addImage(clienteImgId, { tl:{ col:0.12, row:1.35 }, ext:{ width:100, height:45 }, editAs:'oneCell' });
+  if (clienteImgId !== null) ws.addImage(clienteImgId, { tl:{ col:0.12, row:1.35 }, ext:{ width:100, height:45 }, editAs:'oneCell' });
+  else ws.getCell('A2').value = u.cliente; // unidade sem logo: nome do cliente no lugar
   ws.getCell('B2').value = u.unidade;
   ws.getCell('C2').value = 'Legenda:';
   ['A2','B2','C2'].forEach(addr => {
@@ -2546,11 +2585,143 @@ function abrirGestor() {
   gestorAtualizaMes();
   document.getElementById('gestor-panel').style.display = 'flex';
   usuariosCarregar();
-  gestorCarregar();
+  carregarUnidades().then(gestorCarregar);
 }
 
 // escolher o mês no chip do header carrega os dados desse mês (mesma função do antigo botão "Carregar dados")
 function gestorMesMudou() { gestorAtualizaMes(); gestorCarregar(); }
+
+// ── UNIDADES CADASTRADAS PELO GESTOR (coleção unidades/{chave}) ──────────────
+// As unidades fixas continuam no UNITS acima; as cadastradas entram em memória com docas vazias
+// (o técnico usa "+ Adicionar doca"; nos meses seguintes as docas vêm do mês anterior, ver buildFreshState).
+const CHAVES_FIXAS = new Set(Object.keys(UNITS));
+const LOGO_MAX_CHARS = 150 * 1024; // trava do logo: tamanho da string base64 final
+const LOGO_LADO_MAX = 200;         // px, maior lado
+
+const slugUnidade = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+// chave = slug(cliente)_slug(unidade); se já existir (fixas ou cadastradas), sufixa _2, _3…
+function chaveUnidade(cliente, unidade, existentes) {
+  const base = [slugUnidade(cliente), slugUnidade(unidade)].filter(Boolean).join('_');
+  if (!base) return '';
+  let k = base, n = 2;
+  while (existentes.has(k)) k = base + '_' + n++;
+  return k;
+}
+
+function validarLogo(dataUrl) {
+  if (!dataUrl) return { ok: true, msg: '' };
+  if (dataUrl.length > LOGO_MAX_CHARS)
+    return { ok: false, msg: 'Logo muito grande (' + Math.ceil(dataUrl.length / 1024) + ' KB; máximo 150 KB). Use uma imagem menor.' };
+  return { ok: true, msg: '' };
+}
+
+function registrarUnidade(chave, d) {
+  UNITS[chave] = { cliente: d.cliente, unidade: d.unidade, logo: chave, docas: [] };
+  if (/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(d.logoBase64 || '')) LOGOS[chave] = d.logoBase64;
+}
+
+function popularSeletorUnidades() {
+  const sel = document.getElementById('unit-select');
+  const atual = sel.value || currentUnitKey;
+  sel.innerHTML = '';
+  Object.keys(UNITS).filter(k => MODO_TESTE || k !== TESTE_KEY).forEach(key => {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = UNITS[key].cliente + ' — ' + UNITS[key].unidade;
+    sel.appendChild(opt);
+  });
+  sel.value = UNITS[atual] ? atual : currentUnitKey;
+}
+
+// Falha de leitura (regras ainda sem `unidades`, offline sem cache…) não bloqueia o app: ficam as unidades fixas.
+async function carregarUnidades() {
+  try {
+    const snap = await db.collection('unidades').get();
+    snap.docs.forEach(x => {
+      const d = x.data();
+      if (CHAVES_FIXAS.has(x.id) || !d || !d.cliente || !d.unidade) return; // nunca sobrescreve as fixas
+      registrarUnidade(x.id, d);
+    });
+  } catch (e) { console.warn('unidades:', e); }
+  popularSeletorUnidades();
+}
+
+let nuLogo = { dados: '', erro: '' };
+let nuLogoPromise = Promise.resolve();
+
+function abrirNovaUnidade() {
+  if (!ehGestor()) return;
+  nuLogo = { dados: '', erro: '' }; nuLogoPromise = Promise.resolve();
+  ['nu-cliente', 'nu-unidade', 'nu-logo'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('nu-logo-preview').hidden = true;
+  document.getElementById('nu-erro').textContent = '';
+  document.getElementById('unidade-modal').classList.add('open');
+  document.getElementById('nu-cliente').focus();
+}
+function fecharNovaUnidade() { document.getElementById('unidade-modal').classList.remove('open'); }
+
+function carregarImagem(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('imagem inválida')); };
+    img.src = url;
+  });
+}
+
+// reduz para no máx. 200x200 (mantém proporção e transparência) e devolve data URL PNG
+async function processarLogo(file) {
+  const img = await carregarImagem(file);
+  const w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height;
+  const k = Math.min(1, LOGO_LADO_MAX / Math.max(w0, h0));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w0 * k)); c.height = Math.max(1, Math.round(h0 * k));
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/png');
+}
+
+function unidadeLogoEscolhido(input) {
+  const file = input.files && input.files[0];
+  const prev = document.getElementById('nu-logo-preview'), erro = document.getElementById('nu-erro');
+  nuLogo = { dados: '', erro: '' }; prev.hidden = true; erro.textContent = '';
+  if (!file) { nuLogoPromise = Promise.resolve(); return; }
+  nuLogoPromise = processarLogo(file).then(dados => {
+    const v = validarLogo(dados);
+    if (!v.ok) { nuLogo.erro = v.msg; erro.textContent = v.msg; return; }
+    nuLogo.dados = dados; prev.src = dados; prev.hidden = false;
+  }).catch(() => { nuLogo.erro = 'Arquivo de imagem inválido.'; erro.textContent = nuLogo.erro; });
+}
+
+async function unidadeCriar() {
+  if (!ehGestor()) return;
+  const erro = document.getElementById('nu-erro'), btn = document.getElementById('nu-criar');
+  const cliente = document.getElementById('nu-cliente').value.trim().replace(/\s+/g, ' ');
+  const unidade = document.getElementById('nu-unidade').value.trim().replace(/\s+/g, ' ');
+  erro.textContent = '';
+  if (!cliente || !unidade) { erro.textContent = 'Informe o cliente e o nome da unidade.'; return; }
+  await nuLogoPromise;
+  if (nuLogo.erro) { erro.textContent = nuLogo.erro; return; } // logo grande demais / inválido: não salva
+  btn.disabled = true;
+  try {
+    const snap = await db.collection('unidades').get(); // pega também as criadas por outro gestor depois do login
+    const chave = chaveUnidade(cliente, unidade, new Set([...Object.keys(UNITS), ...snap.docs.map(x => x.id)]));
+    if (!chave) { erro.textContent = 'Use letras ou números no cliente e na unidade.'; return; }
+    await db.collection('unidades').doc(chave).set({
+      cliente, unidade, logoBase64: nuLogo.dados || '',
+      criadoPor: usuario.email, criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    registrarUnidade(chave, { cliente, unidade, logoBase64: nuLogo.dados });
+    popularSeletorUnidades();
+    fecharNovaUnidade();
+    showToast('Unidade criada: ' + cliente + ' — ' + unidade);
+    gestorCarregar();
+  } catch (e) {
+    console.error('criar unidade:', e);
+    erro.textContent = 'Não foi possível criar a unidade. Tente de novo.';
+  } finally { btn.disabled = false; }
+}
 
 // ── USUÁRIOS (coleção usuarios, ID = e-mail em minúsculas) ───────────────────
 let usuariosLista = [];

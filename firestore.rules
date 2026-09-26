@@ -42,6 +42,12 @@ service cloud.firestore {
       }
     }
 
+    // ── unidades/{chave}: cadastro de unidades feito pelo gestor ────────────
+    match /unidades/{doc} {
+      allow read: if ativo();
+      allow create, update, delete: if gestor();
+    }
+
     // ── todo o resto (inclusive _config): negado ────────────────────────────
     match /{document=**} {
       allow read, write: if false;
